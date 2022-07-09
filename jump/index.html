@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <title>Auoi - game practices</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="title" content="Auoi - game practices">
+    <meta name="description" content="auoi game practices">
+    <meta name="keyword" content="auoi">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Auoi - game practices">
+    <meta property="og:description" content="game practices">
+    <meta property="og:image" content="https://www.auoi.net/icons/ahyane-20y-m.png">
+    <meta property="og:url" content="https://www.auoi.net">
+    <meta name="format-detection" content="telephone=no">
+
+    <link rel="shortcut icon" type="image/x-icon" href="https://www.auoi.net/icons/ahyane-20y-m.png">
+    <style>
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+            padding: 0px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="my-canvas" width="0" height="0" style="width: 100%; height: 100%;"></canvas>
+
+    <script src="../components/DefaultCanvasView.js"></script>
+    <script src="../components/DefaultRenderer.js"></script>
+    <script>
+        (function () {
+            const canvas = document.querySelector("#my-canvas");
+            const renderer = new DefaultRenderer();
+            const canvasView = new DefaultCanvasView(canvas, renderer);
+
+            const testObject = {
+                x: -20,
+                y: 0,
+                width: 40,
+                height: 40,
+                jumped: false
+            };
+
+            const testObjectPhysics = {
+                speedX: 0,
+                speedY: 0,
+                accelerationY: 0
+            };
+
+            canvasView.setOnPressArrowKey((directions, duration) => {
+                console.log(directions, duration);
+                const now = Date.now();
+
+                if (directions["left"]) {
+                    testObjectPhysics.speedX = -Math.min((now - directions["left"]) * 0.01, 20);
+                } else if (directions["right"]) {
+                    testObjectPhysics.speedX = Math.min((now - directions["right"]) * 0.01, 20);
+                } else {
+                    if (testObject.jumped) {
+                        testObjectPhysics.speedX += (0 - testObjectPhysics.speedX) * 0.01;
+                    } else {
+                        testObjectPhysics.speedX += (0 - testObjectPhysics.speedX) * 0.1;
+                    }
+                }
+                if (directions["up"]) {
+                    if (testObject.jumped == false) {
+                        testObject.jumped = true;
+                        testObjectPhysics.accelerationY = 20;
+                    }
+                }
+            });
+
+            renderer.setOnComputeListener((boundary) => {
+                testObject.x += testObjectPhysics.speedX;
+
+                testObjectPhysics.speedY = -testObjectPhysics.accelerationY;
+                testObjectPhysics.accelerationY = testObjectPhysics.accelerationY - 1;
+
+
+                testObject.y += testObjectPhysics.speedY;
+                if (testObject.y > 0) {
+                    testObject.y = 0;
+                    testObject.jumped = false;
+                }
+            });
+
+            renderer.setOnRenderListener((context, boundary) => {
+                // Ground
+                context.strokeStyle = "#000000";
+                context.lineWidth = 1;
+                context.beginPath();
+                context.moveTo(boundary.left, 0);
+                context.lineTo(boundary.right, 0);
+                context.stroke();
+                context.closePath();
+
+                // Text
+                context.font = "20px sans-serif";
+                context.textAlign = "center";
+                context.textBaseline = "top";
+                context.fillText("Jump!! You can move left & right and jump by arrow key!!", 0, 20);
+
+                // Practice objects
+                context.strokeRect(testObject.x, testObject.y - testObject.height, testObject.width, testObject.height);
+            });
+        })();
+    </script>
+</body>
+
+</html>
