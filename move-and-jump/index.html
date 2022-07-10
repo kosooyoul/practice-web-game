@@ -39,6 +39,10 @@
             const renderer = new DefaultRenderer();
             const canvasView = new DefaultCanvasView(canvas, renderer);
 
+            const map = {
+                loopX: true
+            };
+
             const testObject = {
                 x: -20,
                 y: 0,
@@ -89,13 +93,20 @@
                 }
             }
 
-            function computePhysics() {
+            function computePhysics(boundary) {
                 if (testObject.leftJumpingPower > 0) {
                     testObjectPhysics.accelerationY += testObject.jumpingPowerPerTick;
                     testObject.leftJumpingPower -= testObject.jumpingPowerPerTick;
                 }
 
                 testObject.x += testObjectPhysics.speedX;
+                if (map.loopX) {
+                    if (testObject.x < boundary.left - testObject.width) {
+                        testObject.x = boundary.right;
+                    } else if (testObject.x > boundary.right) {
+                        testObject.x = boundary.left - testObject.width;
+                    }
+                }
 
                 testObjectPhysics.speedY = -testObjectPhysics.accelerationY;
                 testObjectPhysics.accelerationY = testObjectPhysics.accelerationY - 1;
@@ -110,7 +121,7 @@
             renderer.setOnComputeListener((boundary, status) => {
                 computeWithKeys(status.keyTimes);
                 
-                computePhysics();
+                computePhysics(boundary);
             });
 
             renderer.setOnRenderListener((context, boundary) => {
