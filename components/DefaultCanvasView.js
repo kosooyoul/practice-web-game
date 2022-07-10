@@ -127,9 +127,9 @@ class DefaultCanvasView {
     }
 
     onPointerDown(evt) {
-        // if (evt.type == "touchstart") {
-        //     evt.preventDefault(); //for Mobile
-        // }
+        if (evt.type == "touchstart") {
+            evt.preventDefault(); //for Mobile
+        }
 
         var pointer = this._pointerPosition(evt);
 
@@ -197,6 +197,14 @@ class DefaultCanvasView {
             return null;
         }
 
+        delete this._keyTimes["left"];
+        delete this._keyTimes["right"];
+        delete this._keyTimes["up"];
+        delete this._keyTimes["down"];
+        this._downedCursor = null;
+        this._cursor = null;
+        this._moving = false;
+
         var pointer = this._pointerPosition(evt);
         if (!pointer) {
             return;
@@ -205,16 +213,8 @@ class DefaultCanvasView {
         // 포인터 중심 위치
         const cursorX = pointer.x - this.canvas.width / 2 / this.computedQuality;
         const cursorY = pointer.y - this.canvas.height / 2 / this.computedQuality;
-        this._downedCursor = null;
-        this._cursor = null;
-        this._moving = false;
 
         console.log("up", cursorX, cursorY);
-        
-        delete this._keyTimes["left"];
-        delete this._keyTimes["right"];
-        delete this._keyTimes["up"];
-        delete this._keyTimes["down"];
     }
 
     _keyCodeToName(keyCode) {
