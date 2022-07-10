@@ -44,8 +44,10 @@
                 y: 0,
                 width: 40,
                 height: 40,
-                jumped: false,
-                jumping: 0
+                jumpedAt: false,
+                leftJumpingPower: 0,
+                jumpingPowerPerTick: 3,
+                maxJumpingPower: 18
             };
 
             const testObjectPhysics = {
@@ -54,48 +56,54 @@
                 accelerationY: 0
             };
 
-            canvasView.setOnPressArrowKey((directions, duration) => {
+            function computeWithKeys(keyTimes) {
                 const now = Date.now();
 
-                if (directions["left"]) {
-                    testObjectPhysics.speedX = -Math.min((now - directions["left"]) * 0.01, 20);
-                } else if (directions["right"]) {
-                    testObjectPhysics.speedX = Math.min((now - directions["right"]) * 0.01, 20);
+                // Move
+                if (keyTimes["left"]) {
+                    testObjectPhysics.speedX = -Math.min((now - keyTimes["left"]) * 0.01, 20);
+                } else if (keyTimes["right"]) {
+                    testObjectPhysics.speedX = Math.min((now - keyTimes["right"]) * 0.01, 20);
                 } else {
-                    if (testObject.jumped) {
+                    if (testObject.jumpedAt) {
                         testObjectPhysics.speedX += (0 - testObjectPhysics.speedX) * 0.01;
                     } else {
                         testObjectPhysics.speedX += (0 - testObjectPhysics.speedX) * 0.1;
                     }
                 }
-                if (directions["up"]) {
-                    if (testObject.jumped == false) {
-                        testObject.jumped = true;
-                        testObject.jumping = 18;
-                        testObjectPhysics.accelerationY = 3;
-                        testObject.jumping -= 3;
-                    } else if (testObject.jumping) {
-                        testObjectPhysics.accelerationY += 3;
-                        testObject.jumping -= 3;
-                        if (testObject.jumping < 0) {
-                            testObject.jumping = 0;
-                        }
+
+                // Jump
+                if (keyTimes["jump"] || keyTimes["up"]) {
+                    if (testObject.jumpedAt == null) {
+                        testObject.jumpedAt = now;
+                        testObject.leftJumpingPower = testObject.maxJumpingPower;
+                        testObjectPhysics.accelerationY = 0;
                     }
                 }
-            });
+            }
 
-            renderer.setOnComputeListener((boundary) => {
+            function computePhysics() {
+                if (testObject.leftJumpingPower > 0) {
+                    testObjectPhysics.accelerationY += testObject.jumpingPowerPerTick;
+                    testObject.leftJumpingPower -= testObject.jumpingPowerPerTick;
+                }
+
                 testObject.x += testObjectPhysics.speedX;
 
                 testObjectPhysics.speedY = -testObjectPhysics.accelerationY;
                 testObjectPhysics.accelerationY = testObjectPhysics.accelerationY - 1;
 
-
                 testObject.y += testObjectPhysics.speedY;
                 if (testObject.y > 0) {
                     testObject.y = 0;
-                    testObject.jumped = false;
+                    testObject.jumpedAt = null;
                 }
+            }
+
+            renderer.setOnComputeListener((boundary, status) => {
+                computeWithKeys(status.keyTimes);
+                
+                computePhysics();
             });
 
             renderer.setOnRenderListener((context, boundary) => {
@@ -112,7 +120,7 @@
                 context.font = "20px sans-serif";
                 context.textAlign = "center";
                 context.textBaseline = "top";
-                context.fillText("Jump!! You can move left & right and jump by arrow key!!", 0, 20);
+                context.fillText("Jump!! You can move left & right and jump by arrow key and spacebar!!", 0, 20);
 
                 // Practice objects
                 context.strokeRect(testObject.x, testObject.y - testObject.height, testObject.width, testObject.height);

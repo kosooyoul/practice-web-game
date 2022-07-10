@@ -48,7 +48,9 @@ class DefaultRenderer {
 
     }
 
-    render(context) {
+    render(context, status) {
+        this._compute(status);
+
         this._clearCanvas(context);
 
         this._render(context);
@@ -57,10 +59,12 @@ class DefaultRenderer {
     _clearCanvas(context) {
         context.clearRect(0, 0, this.canvasSize.w, this.canvasSize.h);
     }
+    
+    _compute(status) {
+        this._onComputeListener && this._onComputeListener(this._boundary, status);
+    }
 
     _render(context) {
-        this._onComputeListener && this._onComputeListener(this._boundary);
-
         context.save();
         context.translate(this.canvasSize.w >> 1, this.canvasSize.h >> 1);
         context.scale(this.quality, this.quality);

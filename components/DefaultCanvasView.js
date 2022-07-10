@@ -11,13 +11,9 @@ class DefaultCanvasView {
     computedQuality = 1;
     targetQualityRatio = 1;
 
-    onPressArrowKey;
-
     _moving = false;
 
-    _pressedTimes = {};
-    _pressedKeys = {};
-    _intervalForPressedKeys;
+    _keyTimes = {};
 
     constructor(canvas, renderer) {
         console.log("initialize");
@@ -41,10 +37,6 @@ class DefaultCanvasView {
         canvas.addEventListener("touchend", (evt) => this.onPointerUp(evt));
         document.body.addEventListener("keydown", (evt) => this.onKeyDown(evt));
         document.body.addEventListener("keyup", (evt) => this.onKeyUp(evt));
-
-        this._intervalForPressedKeys = setInterval(() => {
-            this._onPressArrowKey(this._pressedTimes);
-        }, 1000 / 60);
     }
 
     destroy() {
@@ -74,10 +66,6 @@ class DefaultCanvasView {
         // Release All Objects
     }
 
-    setOnPressArrowKey(onPressArrowKey) {
-        this._onPressArrowKey = onPressArrowKey;
-    }
-
     _requestRender(context) {
         if (this.fpsCounterView) {
             this.fpsCounterView.count();
@@ -88,7 +76,9 @@ class DefaultCanvasView {
             self._compute();
 
             self.renderer.compute();
-            self.renderer.render(context);
+            self.renderer.render(context, {
+                keyTimes: this._keyTimes
+            });
 
             if (self._playing) {
                 self._requestRender(context);
@@ -184,23 +174,24 @@ class DefaultCanvasView {
             case 38: return "up";
             case 39: return "right";
             case 40: return "down";
+            case 32: return "jump";
         }
         return "";
     }
 
     onKeyDown(evt) {
         const keyName = this._keyCodeToName(evt.which);
-        if (this._pressedTimes[keyName] != null) {
+        if (this._keyTimes[keyName] != null) {
             return
         }
 
-        if ([37, 38, 39, 40].includes(evt.which)) {
-            this._pressedTimes[keyName] = Date.now();
+        if (keyName) {
+            this._keyTimes[keyName] = Date.now();
         }
     }
 
     onKeyUp(evt) {
         const keyName = this._keyCodeToName(evt.which);
-        delete this._pressedTimes[keyName];
+        delete this._keyTimes[keyName];
     }
 }
