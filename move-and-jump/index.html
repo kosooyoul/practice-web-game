@@ -47,7 +47,8 @@
                 jumpedAt: false,
                 leftJumpingPower: 0,
                 jumpingPowerPerTick: 3,
-                maxJumpingPower: 18
+                maxJumpingPower: 18,
+                flappable: true
             };
 
             const testObjectPhysics = {
@@ -78,6 +79,12 @@
                         testObject.jumpedAt = now;
                         testObject.leftJumpingPower = testObject.maxJumpingPower;
                         testObjectPhysics.accelerationY = 0;
+                    } else if (testObject.flappable) {
+                        if (keyTimes["jump"] > testObject.jumpedAt || keyTimes["up"] > testObject.jumpedAt) {
+                            testObject.jumpedAt = now;
+                            testObject.leftJumpingPower = testObject.maxJumpingPower;
+                            testObjectPhysics.accelerationY = 0;
+                        }
                     }
                 }
             }
