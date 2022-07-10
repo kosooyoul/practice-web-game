@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Auoi - game practices</title>
+    <title>Auoi - game practices - move and jump</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="title" content="Auoi - game practices">
     <meta name="description" content="auoi game practices">
@@ -44,7 +44,8 @@
                 y: 0,
                 width: 40,
                 height: 40,
-                jumped: false
+                jumped: false,
+                jumping: 0
             };
 
             const testObjectPhysics = {
@@ -54,7 +55,6 @@
             };
 
             canvasView.setOnPressArrowKey((directions, duration) => {
-                console.log(directions, duration);
                 const now = Date.now();
 
                 if (directions["left"]) {
@@ -71,7 +71,15 @@
                 if (directions["up"]) {
                     if (testObject.jumped == false) {
                         testObject.jumped = true;
-                        testObjectPhysics.accelerationY = 20;
+                        testObject.jumping = 18;
+                        testObjectPhysics.accelerationY = 3;
+                        testObject.jumping -= 3;
+                    } else if (testObject.jumping) {
+                        testObjectPhysics.accelerationY += 3;
+                        testObject.jumping -= 3;
+                        if (testObject.jumping < 0) {
+                            testObject.jumping = 0;
+                        }
                     }
                 }
             });
