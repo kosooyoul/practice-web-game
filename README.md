@@ -2,4 +2,8 @@
 * Practice to make web game
 
 ### Practices
-* 1. Move & Jump: https://game.auoi.net/move-and-jump
+* Move & Jump
+  * See https://game.auoi.net/move-and-jump
+  * Move left: left arrow key
+  * Move right: right arrow key
+  * Jump: up arrow key and spacebar (flappable)
