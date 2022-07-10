@@ -53,7 +53,7 @@ class DefaultRenderer {
 
         this._clearCanvas(context);
 
-        this._render(context);
+        this._render(context, status);
     }
 
     _clearCanvas(context) {
@@ -64,13 +64,72 @@ class DefaultRenderer {
         this._onComputeListener && this._onComputeListener(this._boundary, status);
     }
 
-    _render(context) {
+    _render(context, status) {
         context.save();
         context.translate(this.canvasSize.w >> 1, this.canvasSize.h >> 1);
         context.scale(this.quality, this.quality);
 
         this._onRenderListener && this._onRenderListener(context, this._boundary);
 
+        this._renderTouchInterface(context, status);
+
         context.restore();
+    }
+
+    _renderTouchInterface(context, status) {
+        if (status.downedCursor) {
+            // Left
+            context.beginPath();
+            context.fillStyle = status.keyTimes["left"]? "rgba(127, 0, 127, 0.2)": "rgba(127, 127, 127, 0.2)";
+            context.strokeStyle = "rgba(220, 220, 220, 0.4)";
+            context.moveTo(status.downedCursor.x - 28.28, status.downedCursor.y + 28.28);
+            context.arc(status.downedCursor.x, status.downedCursor.y, 30, Math.PI * 0.75, Math.PI * 1.25);
+            context.lineTo(status.downedCursor.x - 28.28, status.downedCursor.y - 28.28);
+            context.arc(status.downedCursor.x, status.downedCursor.y, 40, Math.PI * 1.25, Math.PI * 0.75, true);
+            context.fill();
+            context.stroke();
+            
+            // Right
+            context.beginPath();
+            context.fillStyle = status.keyTimes["right"]? "rgba(127, 0, 127, 0.2)": "rgba(127, 127, 127, 0.2)";
+            context.strokeStyle = "rgba(220, 220, 220, 0.4)";
+            context.moveTo(status.downedCursor.x + 28.28, status.downedCursor.y - 28.28);
+            context.arc(status.downedCursor.x, status.downedCursor.y, 30, Math.PI * 1.75, Math.PI * 2.25);
+            context.lineTo(status.downedCursor.x + 28.28, status.downedCursor.y + 28.28);
+            context.arc(status.downedCursor.x, status.downedCursor.y, 40, Math.PI * 2.25, Math.PI * 1.75, true);
+            context.fill();
+            context.stroke();
+
+            // Up
+            context.beginPath();
+            context.fillStyle = status.keyTimes["up"]? "rgba(127, 0, 127, 0.2)": "rgba(127, 127, 127, 0.2)";
+            context.strokeStyle = "rgba(220, 220, 220, 0.4)";
+            context.moveTo(status.downedCursor.x - 28.28, status.downedCursor.y - 28.28);
+            context.arc(status.downedCursor.x, status.downedCursor.y, 30, Math.PI * 1.25, Math.PI * 1.75);
+            context.lineTo(status.downedCursor.x + 28.28, status.downedCursor.y - 28.28);
+            context.arc(status.downedCursor.x, status.downedCursor.y, 40, Math.PI * 1.75, Math.PI * 1.25, true);
+            context.fill();
+            context.stroke();
+
+            // Down
+            context.beginPath();
+            context.fillStyle = status.keyTimes["down"]? "rgba(127, 0, 127, 0.2)": "rgba(127, 127, 127, 0.2)";
+            context.strokeStyle = "rgba(220, 220, 220, 0.4)";
+            context.moveTo(status.downedCursor.x + 28.28, status.downedCursor.y + 28.28);
+            context.arc(status.downedCursor.x, status.downedCursor.y, 30, Math.PI * 0.25, Math.PI * 0.75);
+            context.lineTo(status.downedCursor.x - 28.28, status.downedCursor.y + 28.28);
+            context.arc(status.downedCursor.x, status.downedCursor.y, 40, Math.PI * 0.75, Math.PI * 0.25, true);
+            context.fill();
+            context.stroke();
+        }
+
+        if (status.cursor) {
+            context.beginPath();
+            context.fillStyle = "rgba(127, 127, 127, 0.2)";
+            context.strokeStyle = "rgba(220, 220, 220, 0.4)";
+            context.arc(status.cursor.x, status.cursor.y, 20, 0, Math.PI * 2);
+            context.fill();
+            context.stroke();
+        }
     }
 }

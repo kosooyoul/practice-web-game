@@ -6,4 +6,4 @@
   * See https://game.auoi.net/move-and-jump
   * Move left: left arrow key
   * Move right: right arrow key
-  * Jump: up arrow key and spacebar (flappable)
+  * Jump: spacebar (flappable)

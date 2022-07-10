@@ -78,13 +78,13 @@
                 }
 
                 // Jump
-                if (keyTimes["jump"] || keyTimes["up"]) {
+                if (keyTimes["jump"]) {
                     if (testObject.jumpedAt == null) {
                         testObject.jumpedAt = now;
                         testObject.leftJumpingPower = testObject.maxJumpingPower;
                         testObjectPhysics.accelerationY = 0;
                     } else if (testObject.flappable) {
-                        if (keyTimes["jump"] > testObject.jumpedAt || keyTimes["up"] > testObject.jumpedAt) {
+                        if (keyTimes["jump"] > testObject.jumpedAt) {
                             testObject.jumpedAt = now;
                             testObject.leftJumpingPower = testObject.maxJumpingPower;
                             testObjectPhysics.accelerationY = 0;
