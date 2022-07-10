@@ -127,9 +127,9 @@ class DefaultCanvasView {
     }
 
     onPointerDown(evt) {
-        if (evt.type == "touchstart") {
-            evt.preventDefault(); //for Mobile
-        }
+        // if (evt.type == "touchstart") {
+        //     evt.preventDefault(); //for Mobile
+        // }
 
         var pointer = this._pointerPosition(evt);
 
