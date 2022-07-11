@@ -11,6 +11,10 @@ class SingleAction4DirectionsJoypad {
 
     _keyStatus = {};
 
+    constructor() {
+
+    }
+
     getStatus() {
         return this._keyStatus;
     }
