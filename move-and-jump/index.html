@@ -79,7 +79,7 @@
                     physics.accelerationX = Math.max(physics.accelerationX + physics.movingPowerPerTick, 0);
                 } else {
                     physics.accelerationX = 0;
-                    if (testObject.jumpedAt) {
+                    if (physics.jumpedAt) {
                         physics.speedX += (0 - physics.speedX) * physics.airResistivity;
                     } else {
                         physics.speedX += (0 - physics.speedX) * physics.groundResistivity;
