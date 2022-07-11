@@ -118,12 +118,13 @@ class DefaultCanvasView {
         $(this.canvas).stop().fadeIn(duration, () => onFaded && onFaded());
     }
 
-    _pointerPosition(evt) {
-        var pointer = evt.targetTouches ? evt.targetTouches[0] : evt;
-        return {
-            x: pointer.pageX,
-            y: pointer.pageY
-        };
+    _pointerPositions(evt) {
+        var touches = evt.targetTouches ? evt.targetTouches : [evt];
+        const pointers = [];
+        for (var i = 0; i < touches.length; i++) {
+            pointers.push({ x: touches[i].pageX, y: touches[i].pageY, id: touches[i].identifier })
+        }
+        return pointers;
     }
 
     onPointerDown(evt) {
@@ -131,16 +132,19 @@ class DefaultCanvasView {
             evt.preventDefault(); //for Mobile
         }
 
-        var pointer = this._pointerPosition(evt);
+        var pointers = this._pointerPositions(evt);
 
-        var cursorX = pointer.x - this.canvas.width / 2 / this.computedQuality;
-        var cursorY = pointer.y - this.canvas.height / 2 / this.computedQuality;
-        this._downedCursor = {x: cursorX, y: cursorY};
-        this._cursor = {x: cursorX, y: cursorY};
+        pointers.forEach(pointer => {
+            if (this._downedCursor == null) {
+                var cursorX = pointer.x - this.canvas.width / 2 / this.computedQuality;
+                var cursorY = pointer.y - this.canvas.height / 2 / this.computedQuality;
 
-        this._moving = true;
+                this._downedCursor = { x: cursorX, y: cursorY, id: pointer.id };
+                this._cursor = { x: cursorX, y: cursorY, id: pointer.id };
 
-        console.log("down", cursorX, cursorY);
+                this._moving = true;
+            }
+        });
     }
 
     onPointerMove(evt) {
@@ -148,48 +152,51 @@ class DefaultCanvasView {
             return null;
         }
 
-        var pointer = this._pointerPosition(evt);
+        var pointers = this._pointerPositions(evt);
 
-        // 포인터 중심 위치
-        const cursorX = pointer.x - this.canvas.width / 2 / this.computedQuality;
-        const cursorY = pointer.y - this.canvas.height / 2 / this.computedQuality;
-        this._cursor = {x: cursorX, y: cursorY};
+        pointers.forEach(pointer => {
+            if (pointer.id != this._downedCursor.id) {
+                return;
+            }
 
-        console.log("move", cursorX, cursorY);
+            const cursorX = pointer.x - this.canvas.width / 2 / this.computedQuality;
+            const cursorY = pointer.y - this.canvas.height / 2 / this.computedQuality;
+            this._cursor = { x: cursorX, y: cursorY };
 
-        if (Math.abs(this._downedCursor.x - this._cursor.x) > Math.abs(this._downedCursor.y - this._cursor.y)) {
-            if (this._downedCursor.x < this._cursor.x) {
-                if (this._keyTimes["right"] == null) {
-                    this._keyTimes["right"] = Date.now();
-                    delete this._keyTimes["left"];
-                    delete this._keyTimes["up"];
-                    delete this._keyTimes["down"];
+            if (Math.abs(this._downedCursor.x - this._cursor.x) > Math.abs(this._downedCursor.y - this._cursor.y)) {
+                if (this._downedCursor.x < this._cursor.x) {
+                    if (this._keyTimes["right"] == null) {
+                        this._keyTimes["right"] = Date.now();
+                        delete this._keyTimes["left"];
+                        delete this._keyTimes["up"];
+                        delete this._keyTimes["down"];
+                    }
+                } else if (this._downedCursor.x > this._cursor.x) {
+                    if (this._keyTimes["left"] == null) {
+                        this._keyTimes["left"] = Date.now();
+                        delete this._keyTimes["right"];
+                        delete this._keyTimes["up"];
+                        delete this._keyTimes["down"];
+                    }
                 }
-            } else if (this._downedCursor.x > this._cursor.x) {
-                if (this._keyTimes["left"] == null) {
-                    this._keyTimes["left"] = Date.now();
-                    delete this._keyTimes["right"];
-                    delete this._keyTimes["up"];
-                    delete this._keyTimes["down"];
+            } else {
+                if (this._downedCursor.y < this._cursor.y) {
+                    if (this._keyTimes["down"] == null) {
+                        this._keyTimes["down"] = Date.now();
+                        delete this._keyTimes["left"];
+                        delete this._keyTimes["right"];
+                        delete this._keyTimes["up"];
+                    }
+                } else if (this._downedCursor.y > this._cursor.y) {
+                    if (this._keyTimes["up"] == null) {
+                        this._keyTimes["up"] = Date.now();
+                        delete this._keyTimes["left"];
+                        delete this._keyTimes["right"];
+                        delete this._keyTimes["down"];
+                    }
                 }
             }
-        } else {
-            if (this._downedCursor.y < this._cursor.y) {
-                if (this._keyTimes["down"] == null) {
-                    this._keyTimes["down"] = Date.now();
-                    delete this._keyTimes["left"];
-                    delete this._keyTimes["right"];
-                    delete this._keyTimes["up"];
-                }
-            } else if (this._downedCursor.y > this._cursor.y) {
-                if (this._keyTimes["up"] == null) {
-                    this._keyTimes["up"] = Date.now();
-                    delete this._keyTimes["left"];
-                    delete this._keyTimes["right"];
-                    delete this._keyTimes["down"];
-                }
-            }
-        }
+        });
     }
 
     onPointerUp(evt) {
@@ -197,24 +204,19 @@ class DefaultCanvasView {
             return null;
         }
 
-        delete this._keyTimes["left"];
-        delete this._keyTimes["right"];
-        delete this._keyTimes["up"];
-        delete this._keyTimes["down"];
-        this._downedCursor = null;
-        this._cursor = null;
-        this._moving = false;
+        var pointers = this._pointerPositions(evt);
 
-        var pointer = this._pointerPosition(evt);
-        if (!pointer) {
-            return;
+        const downloadPointer = pointers.find(pointer => pointer.id != this._downedCursor.id)
+
+        if (downloadPointer == null) {
+            delete this._keyTimes["left"];
+            delete this._keyTimes["right"];
+            delete this._keyTimes["up"];
+            delete this._keyTimes["down"];
+            this._downedCursor = null;
+            this._cursor = null;
+            this._moving = false;
         }
-
-        // 포인터 중심 위치
-        const cursorX = pointer.x - this.canvas.width / 2 / this.computedQuality;
-        const cursorY = pointer.y - this.canvas.height / 2 / this.computedQuality;
-
-        console.log("up", cursorX, cursorY);
     }
 
     _keyCodeToName(keyCode) {
