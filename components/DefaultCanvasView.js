@@ -12,6 +12,7 @@ class DefaultCanvasView {
     targetQualityRatio = 1;
 
     _downedCursor;
+    _jumpedCursor;
     _cursor;
     _moving = false;
 
@@ -135,14 +136,23 @@ class DefaultCanvasView {
         var pointers = this._pointerPositions(evt);
 
         pointers.forEach(pointer => {
-            if (this._downedCursor == null) {
-                var cursorX = pointer.x - this.canvas.width / 2 / this.computedQuality;
-                var cursorY = pointer.y - this.canvas.height / 2 / this.computedQuality;
+            var cursorX = pointer.x - this.canvas.width / 2 / this.computedQuality;
+            var cursorY = pointer.y - this.canvas.height / 2 / this.computedQuality;
 
-                this._downedCursor = { x: cursorX, y: cursorY, id: pointer.id };
-                this._cursor = { x: cursorX, y: cursorY, id: pointer.id };
+            if (cursorX < 0) {
+                // Left side -> joystick
+                if (this._downedCursor == null) {
+                    this._downedCursor = { x: cursorX, y: cursorY, id: pointer.id };
+                    this._cursor = { x: cursorX, y: cursorY, id: pointer.id };
 
-                this._moving = true;
+                    this._moving = true;
+                }
+            } else {
+                // Right side -> jump
+                if (this._jumpedCursor == null) {
+                    this._jumpedCursor = { x: cursorX, y: cursorY, id: pointer.id };
+                    this._keyTimes["jump"] = Date.now();
+                }
             }
         });
     }
@@ -200,22 +210,26 @@ class DefaultCanvasView {
     }
 
     onPointerUp(evt) {
-        if (!this._moving) {
-            return null;
-        }
-
         var pointers = this._pointerPositions(evt);
 
-        const downloadPointer = pointers.find(pointer => pointer.id == this._downedCursor.id)
+        if (this._moving) {
+            const downedPointer = pointers.find(pointer => pointer.id == this._downedCursor.id)
+            if (downedPointer == null || downedPointer.id == null) {
+                delete this._keyTimes["left"];
+                delete this._keyTimes["right"];
+                delete this._keyTimes["up"];
+                delete this._keyTimes["down"];
+                this._downedCursor = null;
+                this._cursor = null;
+                this._moving = false;
+            }
+        }
 
-        if (downloadPointer == null || downloadPointer.id == null) {
-            delete this._keyTimes["left"];
-            delete this._keyTimes["right"];
-            delete this._keyTimes["up"];
-            delete this._keyTimes["down"];
-            this._downedCursor = null;
-            this._cursor = null;
-            this._moving = false;
+        const jumpedPointer = pointers.find(pointer => pointer.id == this._jumpedCursor.id)
+        if (jumpedPointer == null || jumpedPointer.id == null) {
+            console.log("delete jump")
+            delete this._keyTimes["jump"];
+            this._jumpedCursor = null;
         }
     }
 
