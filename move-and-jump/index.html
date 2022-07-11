@@ -52,7 +52,8 @@
                 leftJumpingPower: 0,
                 jumpingPowerPerTick: 3,
                 maxJumpingPower: 18,
-                flappable: true
+                flappable: 1,
+                flapped: 0
             };
 
             const testObjectPhysics = {
@@ -81,15 +82,19 @@
                 if (keyTimes["jump"]) {
                     if (testObject.jumpedAt == null) {
                         testObject.jumpedAt = now;
+                        testObject.flapped = 0;
                         testObject.leftJumpingPower = testObject.maxJumpingPower;
                         testObjectPhysics.accelerationY = 0;
-                    } else if (testObject.flappable) {
+                    } else if (testObject.flapped < testObject.flappable) {
                         if (keyTimes["jump"] > testObject.jumpedAt) {
                             testObject.jumpedAt = now;
+                            testObject.flapped++;
                             testObject.leftJumpingPower = testObject.maxJumpingPower;
                             testObjectPhysics.accelerationY = 0;
                         }
                     }
+                } else {
+                    testObject.leftJumpingPower = 0;
                 }
             }
 
@@ -120,7 +125,7 @@
 
             renderer.setOnComputeListener((boundary, status) => {
                 computeWithKeys(status.keyTimes);
-                
+
                 computePhysics(boundary);
             });
 
