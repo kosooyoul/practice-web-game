@@ -40,7 +40,8 @@
             const canvasView = new DefaultCanvasView(canvas, renderer);
 
             const map = {
-                loopX: true
+                loopX: true,
+                gravityPerTick: 1
             };
 
             const testObject = {
@@ -48,63 +49,46 @@
                 y: 0,
                 width: 40,
                 height: 40,
-                jumpedAt: false,
-                leftJumpingPower: 0,
-                jumpingPowerPerTick: 3,
-                maxJumpingPower: 18,
-                flappable: 1,
-                flapped: 0
             };
 
-            const testObjectPhysics = {
+            const physics = {
                 speedX: 0,
                 speedY: 0,
-                accelerationY: 0
+                accelerationX: 0,
+                accelerationY: 0,
+                maxSpeedX: 10,
+                movingPowerPerTick: 0.03,
+                leftJumpingPower: 0,
+                maxJumpingPower: 18,
+                jumpingPowerPerTick: 3,
+                jumpedAt: null,
+                flapped: 0,
+                flappable: 1,
+                reflectionDecrement: 5,
+                reflectivity: 0.4,
+                groundResistivity: 0.14,
+                airResistivity: 0.01,
             };
 
-            function computeWithKeys(keyTimes) {
+            function computeMoving(boundary, status) {
                 const now = Date.now();
 
-                // Move
-                if (keyTimes["left"]) {
-                    testObjectPhysics.speedX = -Math.min((now - keyTimes["left"]) * 0.01, 20);
-                } else if (keyTimes["right"]) {
-                    testObjectPhysics.speedX = Math.min((now - keyTimes["right"]) * 0.01, 20);
+                if (status.keyTimes["left"]) {
+                    physics.accelerationX = Math.min(physics.accelerationX - physics.movingPowerPerTick, 0);
+                } else if (status.keyTimes["right"]) {
+                    physics.accelerationX = Math.max(physics.accelerationX + physics.movingPowerPerTick, 0);
                 } else {
+                    physics.accelerationX = 0;
                     if (testObject.jumpedAt) {
-                        testObjectPhysics.speedX += (0 - testObjectPhysics.speedX) * 0.01;
+                        physics.speedX += (0 - physics.speedX) * physics.airResistivity;
                     } else {
-                        testObjectPhysics.speedX += (0 - testObjectPhysics.speedX) * 0.1;
+                        physics.speedX += (0 - physics.speedX) * physics.groundResistivity;
                     }
                 }
 
-                // Jump
-                if (keyTimes["jump"]) {
-                    if (testObject.jumpedAt == null) {
-                        testObject.jumpedAt = now;
-                        testObject.flapped = 0;
-                        testObject.leftJumpingPower = testObject.maxJumpingPower;
-                        testObjectPhysics.accelerationY = 0;
-                    } else if (testObject.flapped < testObject.flappable) {
-                        if (keyTimes["jump"] > testObject.jumpedAt) {
-                            testObject.jumpedAt = now;
-                            testObject.flapped++;
-                            testObject.leftJumpingPower = testObject.maxJumpingPower;
-                            testObjectPhysics.accelerationY = 0;
-                        }
-                    }
-                } else {
-                    testObject.leftJumpingPower = 0;
-                }
-            }
+                physics.speedX = Math.max(Math.min(physics.speedX + physics.accelerationX, physics.maxSpeedX), -physics.maxSpeedX);
 
-            function computePhysics(boundary) {
-                if (testObject.leftJumpingPower > 0) {
-                    testObjectPhysics.accelerationY += testObject.jumpingPowerPerTick;
-                    testObject.leftJumpingPower -= testObject.jumpingPowerPerTick;
-                }
-
-                testObject.x += testObjectPhysics.speedX;
+                testObject.x += physics.speedX;
                 if (map.loopX) {
                     if (testObject.x < boundary.left - testObject.width) {
                         testObject.x = boundary.right;
@@ -112,21 +96,49 @@
                         testObject.x = boundary.left - testObject.width;
                     }
                 }
+            }
 
-                testObjectPhysics.speedY = -testObjectPhysics.accelerationY;
-                testObjectPhysics.accelerationY = testObjectPhysics.accelerationY - 1;
+            function computeJumping(boundary, status) {
+                const now = Date.now();
 
-                testObject.y += testObjectPhysics.speedY;
+                if (status.keyTimes["jump"]) {
+                    if (physics.jumpedAt == null) {
+                        physics.flapped = 0;
+                        physics.jumpedAt = now;
+                        physics.leftJumpingPower = physics.maxJumpingPower;
+                        physics.accelerationY = 0;
+                    } else if (physics.flapped < physics.flappable) {
+                        if (status.keyTimes["jump"] > physics.jumpedAt) {
+                            physics.flapped++;
+                            physics.jumpedAt = now;
+                            physics.leftJumpingPower = physics.maxJumpingPower;
+                            physics.accelerationY = 0;
+                        }
+                    }
+                } else {
+                    physics.leftJumpingPower = 0;
+                }
+
+                if (physics.leftJumpingPower > 0) {
+                    physics.accelerationY += physics.jumpingPowerPerTick;
+                    physics.leftJumpingPower -= physics.jumpingPowerPerTick;
+                }
+
+                physics.speedY = -physics.accelerationY;
+                physics.accelerationY = physics.accelerationY - map.gravityPerTick;
+
+                // Check ground
+                testObject.y += physics.speedY;
                 if (testObject.y > 0) {
                     testObject.y = 0;
-                    testObject.jumpedAt = null;
+                    physics.accelerationY = Math.max((Math.abs(physics.accelerationY) - physics.reflectionDecrement) * physics.reflectivity, 0);
+                    physics.jumpedAt = null;
                 }
             }
 
             renderer.setOnComputeListener((boundary, status) => {
-                computeWithKeys(status.keyTimes);
-
-                computePhysics(boundary);
+                computeMoving(boundary, status);
+                computeJumping(boundary, status);
             });
 
             renderer.setOnRenderListener((context, boundary) => {

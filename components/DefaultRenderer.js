@@ -123,11 +123,11 @@ class DefaultRenderer {
             context.stroke();
         }
 
-        if (status.cursor) {
+        if (status.movingCursor) {
             context.beginPath();
             context.fillStyle = "rgba(127, 127, 127, 0.2)";
             context.strokeStyle = "rgba(220, 220, 220, 0.4)";
-            context.arc(status.cursor.x, status.cursor.y, 20, 0, Math.PI * 2);
+            context.arc(status.movingCursor.x, status.movingCursor.y, 20, 0, Math.PI * 2);
             context.fill();
             context.stroke();
         }

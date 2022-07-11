@@ -12,9 +12,8 @@ class DefaultCanvasView {
     targetQualityRatio = 1;
 
     _downedCursor;
+    _movingCursor;
     _jumpedCursor;
-    _cursor;
-    _moving = false;
 
     _keyTimes = {};
 
@@ -82,7 +81,7 @@ class DefaultCanvasView {
             self.renderer.render(context, {
                 keyTimes: this._keyTimes,
                 downedCursor: this._downedCursor,
-                cursor: this._cursor
+                movingCursor: this._movingCursor
             });
 
             if (self._playing) {
@@ -143,9 +142,7 @@ class DefaultCanvasView {
                 // Left side -> joystick
                 if (this._downedCursor == null) {
                     this._downedCursor = { x: cursorX, y: cursorY, id: pointer.id };
-                    this._cursor = { x: cursorX, y: cursorY, id: pointer.id };
-
-                    this._moving = true;
+                    this._movingCursor = { x: cursorX, y: cursorY, id: pointer.id };
                 }
             } else {
                 // Right side -> jump
@@ -158,8 +155,8 @@ class DefaultCanvasView {
     }
 
     onPointerMove(evt) {
-        if (!this._moving) {
-            return null;
+        if (this._downedCursor == null) {
+            return;
         }
 
         var pointers = this._pointerPositions(evt);
@@ -171,17 +168,17 @@ class DefaultCanvasView {
 
             const cursorX = pointer.x - this.canvas.width / 2 / this.computedQuality;
             const cursorY = pointer.y - this.canvas.height / 2 / this.computedQuality;
-            this._cursor = { x: cursorX, y: cursorY };
+            this._movingCursor = { x: cursorX, y: cursorY };
 
-            if (Math.abs(this._downedCursor.x - this._cursor.x) > Math.abs(this._downedCursor.y - this._cursor.y)) {
-                if (this._downedCursor.x < this._cursor.x) {
+            if (Math.abs(this._downedCursor.x - this._movingCursor.x) > Math.abs(this._downedCursor.y - this._movingCursor.y)) {
+                if (this._downedCursor.x < this._movingCursor.x) {
                     if (this._keyTimes["right"] == null) {
                         this._keyTimes["right"] = Date.now();
                         delete this._keyTimes["left"];
                         delete this._keyTimes["up"];
                         delete this._keyTimes["down"];
                     }
-                } else if (this._downedCursor.x > this._cursor.x) {
+                } else if (this._downedCursor.x > this._movingCursor.x) {
                     if (this._keyTimes["left"] == null) {
                         this._keyTimes["left"] = Date.now();
                         delete this._keyTimes["right"];
@@ -190,14 +187,14 @@ class DefaultCanvasView {
                     }
                 }
             } else {
-                if (this._downedCursor.y < this._cursor.y) {
+                if (this._downedCursor.y < this._movingCursor.y) {
                     if (this._keyTimes["down"] == null) {
                         this._keyTimes["down"] = Date.now();
                         delete this._keyTimes["left"];
                         delete this._keyTimes["right"];
                         delete this._keyTimes["up"];
                     }
-                } else if (this._downedCursor.y > this._cursor.y) {
+                } else if (this._downedCursor.y > this._movingCursor.y) {
                     if (this._keyTimes["up"] == null) {
                         this._keyTimes["up"] = Date.now();
                         delete this._keyTimes["left"];
@@ -212,7 +209,7 @@ class DefaultCanvasView {
     onPointerUp(evt) {
         var pointers = this._pointerPositions(evt);
 
-        if (this._moving) {
+        if (this._downedCursor) {
             const downedPointer = pointers.find(pointer => pointer.id == this._downedCursor.id)
             if (downedPointer == null || downedPointer.id == null) {
                 delete this._keyTimes["left"];
@@ -220,16 +217,18 @@ class DefaultCanvasView {
                 delete this._keyTimes["up"];
                 delete this._keyTimes["down"];
                 this._downedCursor = null;
-                this._cursor = null;
+                this._movingCursor = null;
                 this._moving = false;
             }
         }
 
-        const jumpedPointer = pointers.find(pointer => pointer.id == this._jumpedCursor.id)
-        if (jumpedPointer == null || jumpedPointer.id == null) {
-            console.log("delete jump")
-            delete this._keyTimes["jump"];
-            this._jumpedCursor = null;
+        if (this._jumpedCursor) {
+            const jumpedPointer = pointers.find(pointer => pointer.id == this._jumpedCursor.id)
+            if (jumpedPointer == null || jumpedPointer.id == null) {
+                console.log("delete jump")
+                delete this._keyTimes["jump"];
+                this._jumpedCursor = null;
+            }
         }
     }
 
