@@ -152,10 +152,12 @@
                 context.closePath();
 
                 // Text
-                context.font = "20px sans-serif";
+                context.font = "18px sans-serif";
                 context.textAlign = "center";
                 context.textBaseline = "top";
-                context.fillText("Jump!! You can move left & right and jump by arrow key and spacebar!!", 0, 20);
+                context.fillText("Move and Jump!!", 0, 30);
+                context.fillText("You can move by arrow key and touch left side joystick!", 0, 60);
+                context.fillText("You can jump by spacebar and touch right side!", 0, 90);
 
                 // Practice objects
                 context.strokeRect(testObject.x, testObject.y - testObject.height, testObject.width, testObject.height);
