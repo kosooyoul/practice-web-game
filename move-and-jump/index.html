@@ -33,11 +33,17 @@
 
     <script src="../components/DefaultCanvasView.js"></script>
     <script src="../components/DefaultRenderer.js"></script>
+    <script src="../components/SingleAction4DirectionsJoypad.js"></script>
     <script>
         (function () {
             const canvas = document.querySelector("#my-canvas");
+
             const renderer = new DefaultRenderer();
-            const canvasView = new DefaultCanvasView(canvas, renderer);
+            const joypad = new SingleAction4DirectionsJoypad();
+
+            const canvasView = new DefaultCanvasView(canvas);
+            canvasView.setRenderer(renderer);
+            canvasView.setJoypad(joypad);
 
             const map = {
                 loopX: true,
@@ -48,7 +54,7 @@
                 x: -20,
                 y: 0,
                 width: 40,
-                height: 40,
+                height: 40
             };
 
             const physics = {
@@ -67,15 +73,15 @@
                 reflectionDecrement: 5,
                 reflectivity: 0.4,
                 groundResistivity: 0.14,
-                airResistivity: 0.01,
+                airResistivity: 0.01
             };
 
             function computeMoving(boundary, status) {
                 const now = Date.now();
 
-                if (status.keyTimes["left"]) {
+                if (status.joypad["left"]) {
                     physics.accelerationX = Math.min(physics.accelerationX - physics.movingPowerPerTick, 0);
-                } else if (status.keyTimes["right"]) {
+                } else if (status.joypad["right"]) {
                     physics.accelerationX = Math.max(physics.accelerationX + physics.movingPowerPerTick, 0);
                 } else {
                     physics.accelerationX = 0;
@@ -101,14 +107,14 @@
             function computeJumping(boundary, status) {
                 const now = Date.now();
 
-                if (status.keyTimes["jump"]) {
+                if (status.joypad["action"]) {
                     if (physics.jumpedAt == null) {
                         physics.flapped = 0;
                         physics.jumpedAt = now;
                         physics.leftJumpingPower = physics.maxJumpingPower;
                         physics.accelerationY = 0;
                     } else if (physics.flapped < physics.flappable) {
-                        if (status.keyTimes["jump"] > physics.jumpedAt) {
+                        if (status.joypad["action"] > physics.jumpedAt) {
                             physics.flapped++;
                             physics.jumpedAt = now;
                             physics.leftJumpingPower = physics.maxJumpingPower;
@@ -136,18 +142,18 @@
                 }
             }
 
-            renderer.setOnComputeListener((boundary, status) => {
-                computeMoving(boundary, status);
-                computeJumping(boundary, status);
+            canvasView.setOnComputeListener((status) => {
+                computeMoving(status.boundary, status);
+                computeJumping(status.boundary, status);
             });
 
-            renderer.setOnRenderListener((context, boundary) => {
+            canvasView.setOnRenderListener((context, status) => {
                 // Ground
                 context.strokeStyle = "#000000";
                 context.lineWidth = 1;
                 context.beginPath();
-                context.moveTo(boundary.left, 0);
-                context.lineTo(boundary.right, 0);
+                context.moveTo(status.boundary.left, 0);
+                context.lineTo(status.boundary.right, 0);
                 context.stroke();
                 context.closePath();
 
