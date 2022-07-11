@@ -206,7 +206,7 @@ class DefaultCanvasView {
 
         var pointers = this._pointerPositions(evt);
 
-        const downloadPointer = pointers.find(pointer => pointer.id != this._downedCursor.id)
+        const downloadPointer = pointers.find(pointer => pointer.id == this._downedCursor.id)
 
         if (downloadPointer == null) {
             delete this._keyTimes["left"];
