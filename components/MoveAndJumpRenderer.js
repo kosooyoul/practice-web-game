@@ -4,39 +4,17 @@ class MoveAndJumpRenderer {
         gravity: 1
     };
 
-    _testObject = {
-        x: -20,
-        y: 0,
-        width: 40,
-        height: 40
-    };
-
-    _physics = {
-        speedX: 0,
-        speedY: 0,
-        accelerationX: 0,
-        accelerationY: 0,
-        maxSpeedX: 10,
-        movingPowerPerTick: 0.03,
-        leftJumpingPower: 0,
-        maxJumpingPower: 18,
-        jumpingPowerPerTick: 3,
-        jumpedAt: null,
-        flapped: 0,
-        flappable: 1,
-        reflectionDecrement: 5,
-        reflectivity: 0.4,
-        groundResistivity: 0.14,
-        airResistivity: 0.01
-    };
+    _actorObject;
+    _object;
 
     constructor() {
-
+        this._actorObject = new PhysicsObject(-20, 0, 40, 40);
     }
 
     compute(status) {
-        this._computeMoving(status);
-        this._computeJumping(status);
+        this._computeMoving(this._actorObject, status);
+        this._computeJumping(this._actorObject, status);
+        this._computeCollision(this._actorObject, status);
     }
 
     render(context, status) {
@@ -58,68 +36,74 @@ class MoveAndJumpRenderer {
         context.fillText("You can jump by spacebar and touch right side!", 0, 90);
 
         // Practice objects
-        context.strokeRect(this._testObject.x, this._testObject.y - this._testObject.height, this._testObject.width, this._testObject.height);
+        this._renderObject(context, this._actorObject, status);
     }
 
-    _computeMoving(status) {
+    _renderObject(context, object, _status) {
+        context.strokeRect(object.x, object.y - object.height, object.width, object.height);
+    }
+
+    _computeMoving(object, status) {
         if (status.joypad["left"]) {
-            this._physics.accelerationX = Math.min(this._physics.accelerationX - this._physics.movingPowerPerTick, 0);
+            object.physics.accelerationX = Math.min(object.physics.accelerationX - object.physics.movingPowerPerTick, 0);
         } else if (status.joypad["right"]) {
-            this._physics.accelerationX = Math.max(this._physics.accelerationX + this._physics.movingPowerPerTick, 0);
+            object.physics.accelerationX = Math.max(object.physics.accelerationX + object.physics.movingPowerPerTick, 0);
         } else {
-            this._physics.accelerationX = 0;
-            if (this._physics.jumpedAt) {
-                this._physics.speedX += (0 - this._physics.speedX) * this._physics.airResistivity;
+            object.physics.accelerationX = 0;
+            if (object.physics.jumpedAt) {
+                object.physics.speedX += (0 - object.physics.speedX) * object.physics.airResistivity;
             } else {
-                this._physics.speedX += (0 - this._physics.speedX) * this._physics.groundResistivity;
+                object.physics.speedX += (0 - object.physics.speedX) * object.physics.groundResistivity;
             }
         }
 
-        this._physics.speedX = Math.max(Math.min(this._physics.speedX + this._physics.accelerationX, this._physics.maxSpeedX), -this._physics.maxSpeedX);
+        object.physics.speedX = Math.max(Math.min(object.physics.speedX + object.physics.accelerationX, object.physics.maxSpeedX), -object.physics.maxSpeedX);
 
-        this._testObject.x += this._physics.speedX;
+        object.x += object.physics.speedX;
         if (this._environment.loopX) {
-            if (this._testObject.x < status.boundary.left - this._testObject.width) {
-                this._testObject.x = status.boundary.right;
-            } else if (this._testObject.x > status.boundary.right) {
-                this._testObject.x = status.boundary.left - this._testObject.width;
+            if (object.x < status.boundary.left - object.width) {
+                object.x = status.boundary.right;
+            } else if (object.x > status.boundary.right) {
+                object.x = status.boundary.left - object.width;
             }
         }
     }
 
-    _computeJumping(status) {
+    _computeJumping(object, status) {
         if (status.joypad["action"]) {
-            if (this._physics.jumpedAt == null) {
-                this._physics.flapped = 0;
-                this._physics.jumpedAt = Date.now();
-                this._physics.leftJumpingPower = this._physics.maxJumpingPower;
-                this._physics.accelerationY = 0;
-            } else if (this._physics.flapped < this._physics.flappable) {
-                if (status.joypad["action"] > this._physics.jumpedAt) {
-                    this._physics.flapped++;
-                    this._physics.jumpedAt = Date.now();
-                    this._physics.leftJumpingPower = this._physics.maxJumpingPower;
-                    this._physics.accelerationY = 0;
+            if (object.physics.jumpedAt == null) {
+                object.physics.flapped = 0;
+                object.physics.jumpedAt = Date.now();
+                object.physics.leftJumpingPower = object.physics.maxJumpingPower;
+                object.physics.accelerationY = 0;
+            } else if (object.physics.flapped < object.physics.flappable) {
+                if (status.joypad["action"] > object.physics.jumpedAt) {
+                    object.physics.flapped++;
+                    object.physics.jumpedAt = Date.now();
+                    object.physics.leftJumpingPower = object.physics.maxJumpingPower;
+                    object.physics.accelerationY = 0;
                 }
             }
         } else {
-            this._physics.leftJumpingPower = 0;
+            object.physics.leftJumpingPower = 0;
         }
 
-        if (this._physics.leftJumpingPower > 0) {
-            this._physics.accelerationY += this._physics.jumpingPowerPerTick;
-            this._physics.leftJumpingPower -= this._physics.jumpingPowerPerTick;
+        if (object.physics.leftJumpingPower > 0) {
+            object.physics.accelerationY += object.physics.jumpingPowerPerTick;
+            object.physics.leftJumpingPower -= object.physics.jumpingPowerPerTick;
         }
 
-        this._physics.speedY = -this._physics.accelerationY;
-        this._physics.accelerationY = this._physics.accelerationY - this._environment.gravity;
+        object.physics.speedY = -object.physics.accelerationY;
+        object.physics.accelerationY = object.physics.accelerationY - this._environment.gravity;
+    }
 
-        // Check ground
-        this._testObject.y += this._physics.speedY;
-        if (this._testObject.y > 0) {
-            this._testObject.y = 0;
-            this._physics.accelerationY = Math.max((Math.abs(this._physics.accelerationY) - this._physics.reflectionDecrement) * this._physics.reflectivity, 0);
-            this._physics.jumpedAt = null;
+    _computeCollision(object, _status) {
+        // Check ground collision
+        object.y += object.physics.speedY;
+        if (object.y > 0) {
+            object.y = 0;
+            object.physics.accelerationY = Math.max((Math.abs(object.physics.accelerationY) - object.physics.reflectionDecrement) * object.physics.reflectivity, 0);
+            object.physics.jumpedAt = null;
         }
     }
 }
