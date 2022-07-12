@@ -14,6 +14,8 @@ class MoveAndJumpRenderer {
         this._boxObjects.push(new PhysicsObject(-25, 0, 50, 50));
         this._boxObjects.push(new PhysicsObject(-200, -180, 200, 20));
         this._boxObjects.push(new PhysicsObject(-350, -250, 120, 20));
+        this._boxObjects.push(new PhysicsObject(350, 50, 100, 20));
+        this._boxObjects.push(new PhysicsObject(260, 10, 100, 20));
     }
 
     compute(status) {

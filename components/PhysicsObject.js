@@ -25,7 +25,7 @@ class PhysicsObject {
         speedY: 0,
         accelerationX: 0,
         accelerationY: 0,
-        maxSpeedX: 8,
+        maxSpeedX: 5,
         movingPowerPerTick: 0.02,
         leftJumpingPower: 0,
         maxJumpingPower: 18,
@@ -35,7 +35,7 @@ class PhysicsObject {
         flappable: 1,
         reflectionDecrement: 5,
         reflectivity: 0.2,
-        groundResistivity: 0.16,
+        groundResistivity: 0.18,
         airResistivity: 0.04,
         groundReflectivity: 0.08,
         airReflectivity: 0.15
@@ -132,6 +132,12 @@ class PhysicsObject {
                     this.physics.jumpedAt = null;
 
                     return;
+                } else {
+                    // Fall
+                    if (this.physics.jumpedAt == null) {
+                        this.physics.jumpedAt = Date.now();
+                        this.physics.flapped = 0;
+                    }
                 }
             }
         }
