@@ -4,17 +4,22 @@ class MoveAndJumpRenderer {
         gravity: 1
     };
 
-    _actorObject;
-    _object;
+    _actorObject = null;
+    _boxObjects = [];
 
     constructor() {
         this._actorObject = new PhysicsObject(-20, 0, 40, 40);
+        this._boxObjects.push(new PhysicsObject(200, -200, 100, 100));
+        this._boxObjects.push(new PhysicsObject(-300, 0, 100, 100));
+        this._boxObjects.push(new PhysicsObject(-25, -100, 50, 50));
     }
 
     compute(status) {
         this._computeMoving(this._actorObject, status);
         this._computeJumping(this._actorObject, status);
-        this._computeCollision(this._actorObject, status);
+        this._computeGroundCollision(status);
+        this._computeBoxCollision(status);
+        this._actorObject.move();
     }
 
     render(context, status) {
@@ -37,6 +42,7 @@ class MoveAndJumpRenderer {
 
         // Practice objects
         this._renderObject(context, this._actorObject, status);
+        this._boxObjects.forEach(wallObject => this._renderObject(context, wallObject, status));
     }
 
     _renderObject(context, object, _status) {
@@ -59,14 +65,15 @@ class MoveAndJumpRenderer {
 
         object.physics.speedX = Math.max(Math.min(object.physics.speedX + object.physics.accelerationX, object.physics.maxSpeedX), -object.physics.maxSpeedX);
 
-        object.x += object.physics.speedX;
+        let x = object.x + object.physics.speedX;
         if (this._environment.loopX) {
-            if (object.x < status.boundary.left - object.width) {
-                object.x = status.boundary.right;
-            } else if (object.x > status.boundary.right) {
-                object.x = status.boundary.left - object.width;
+            if (x < status.boundary.left - object.width) {
+                x = status.boundary.right;
+            } else if (x > status.boundary.right) {
+                x = status.boundary.left - object.width;
             }
         }
+        object.toX(x);
     }
 
     _computeJumping(object, status) {
@@ -94,16 +101,18 @@ class MoveAndJumpRenderer {
         }
 
         object.physics.speedY = -object.physics.accelerationY;
-        object.physics.accelerationY = object.physics.accelerationY - this._environment.gravity;
+        object.physics.accelerationY -= this._environment.gravity;
+
+        const y = object.y + object.physics.speedY;
+
+        object.toY(y);
     }
 
-    _computeCollision(object, _status) {
-        // Check ground collision
-        object.y += object.physics.speedY;
-        if (object.y > 0) {
-            object.y = 0;
-            object.physics.accelerationY = Math.max((Math.abs(object.physics.accelerationY) - object.physics.reflectionDecrement) * object.physics.reflectivity, 0);
-            object.physics.jumpedAt = null;
-        }
+    _computeGroundCollision(_status) {
+        this._actorObject.collisionWithGround(0);
+    }
+
+    _computeBoxCollision(_status) {
+        this._boxObjects.forEach(wallObject => this._actorObject.collisionWithBox(wallObject));
     }
 }
