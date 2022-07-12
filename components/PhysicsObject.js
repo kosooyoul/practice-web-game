@@ -132,11 +132,6 @@ class PhysicsObject {
                     this.physics.jumpedAt = null;
 
                     return;
-                } else {
-                    // Fall
-                    if (this.physics.jumpedAt == null) {
-                        this.physics.jumpedAt = Date.now();
-                    }
                 }
             }
         }

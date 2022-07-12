@@ -8,10 +8,12 @@ class MoveAndJumpRenderer {
     _boxObjects = [];
 
     constructor() {
-        this._actorObject = new PhysicsObject(-20, 0, 40, 40);
-        this._boxObjects.push(new PhysicsObject(200, -200, 100, 100));
-        this._boxObjects.push(new PhysicsObject(-300, 0, 100, 100));
-        this._boxObjects.push(new PhysicsObject(-25, -100, 50, 50));
+        this._actorObject = new PhysicsObject(-20, 100, 40, 40);
+        this._boxObjects.push(new PhysicsObject(200, -100, 100, 100));
+        this._boxObjects.push(new PhysicsObject(-300, 100, 100, 100));
+        this._boxObjects.push(new PhysicsObject(-25, 0, 50, 50));
+        this._boxObjects.push(new PhysicsObject(-200, -180, 200, 20));
+        this._boxObjects.push(new PhysicsObject(-350, -250, 120, 20));
     }
 
     compute(status) {
@@ -27,8 +29,8 @@ class MoveAndJumpRenderer {
         context.strokeStyle = "#000000";
         context.lineWidth = 1;
         context.beginPath();
-        context.moveTo(status.boundary.left, 0);
-        context.lineTo(status.boundary.right, 0);
+        context.moveTo(status.boundary.left, 100);
+        context.lineTo(status.boundary.right, 100);
         context.stroke();
         context.closePath();
 
@@ -36,9 +38,9 @@ class MoveAndJumpRenderer {
         context.font = "18px sans-serif";
         context.textAlign = "center";
         context.textBaseline = "top";
-        context.fillText("Move and Jump!!", 0, 30);
-        context.fillText("You can move by arrow key and touch left side joystick!", 0, 60);
-        context.fillText("You can jump by spacebar and touch right side!", 0, 90);
+        context.fillText("Move and Jump!!", 0, 130);
+        context.fillText("You can move by arrow key and touch left side joystick!", 0, 160);
+        context.fillText("You can jump by spacebar and touch right side!", 0, 190);
 
         // Practice objects
         this._renderObject(context, this._actorObject, status);
@@ -82,6 +84,7 @@ class MoveAndJumpRenderer {
                 object.physics.flapped = 0;
                 object.physics.jumpedAt = Date.now();
                 object.physics.leftJumpingPower = object.physics.maxJumpingPower;
+                object.physics.speedY = 0;
                 object.physics.accelerationY = 0;
             } else if (object.physics.flapped < object.physics.flappable) {
                 if (status.joypad["action"] > object.physics.jumpedAt) {
@@ -101,7 +104,7 @@ class MoveAndJumpRenderer {
         }
 
         object.physics.speedY = -object.physics.accelerationY;
-        object.physics.accelerationY -= this._environment.gravity;
+        object.physics.accelerationY -= this._environment.gravity - object.physics.airResistivity;
 
         const y = object.y + object.physics.speedY;
 
@@ -109,7 +112,7 @@ class MoveAndJumpRenderer {
     }
 
     _computeGroundCollision(_status) {
-        this._actorObject.collisionWithGround(0);
+        this._actorObject.collisionWithGround(100);
     }
 
     _computeBoxCollision(_status) {
