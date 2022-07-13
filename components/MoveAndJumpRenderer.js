@@ -7,6 +7,8 @@ class MoveAndJumpRenderer {
     _actorObject = null;
     _boxObjects = [];
 
+    _lockedJumpAt = null;
+
     constructor() {
         this._actorObject = new PhysicsObject(-20, 100, 40, 40);
         this._boxObjects.push(new PhysicsObject(200, -100, 100, 100));
@@ -82,7 +84,15 @@ class MoveAndJumpRenderer {
 
     _computeJumping(object, status) {
         if (status.joypad["action"]) {
-            if (object.physics.jumpedAt == null) {
+            if (this._lockedJumpAt != null) {
+                if (status.joypad["action"] > this._lockedJumpAt) {
+                    this._lockedJumpAt = null;
+                }
+            }
+
+            if (this._lockedJumpAt != null) {
+                // do nothing;
+            } else if (object.physics.jumpedAt == null) {
                 object.physics.flapped = 0;
                 object.physics.jumpedAt = Date.now();
                 object.physics.leftJumpingPower = object.physics.maxJumpingPower;
@@ -113,11 +123,17 @@ class MoveAndJumpRenderer {
         object.toY(y);
     }
 
-    _computeGroundCollision(_status) {
-        this._actorObject.collisionWithGround(100);
+    _computeGroundCollision(status) {
+        if (this._actorObject.collisionWithGround(100) == "top") {
+            this._lockedJumpAt = Date.now();
+        };
     }
 
-    _computeBoxCollision(_status) {
-        this._boxObjects.forEach(wallObject => this._actorObject.collisionWithBox(wallObject));
+    _computeBoxCollision(status) {
+        this._boxObjects.forEach(wallObject => {
+            if (this._actorObject.collisionWithBox(wallObject) == "top") {
+                this._lockedJumpAt = Date.now();
+            }
+        });
     }
 }
