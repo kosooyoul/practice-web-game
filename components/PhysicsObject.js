@@ -154,8 +154,8 @@ class PhysicsObject {
         }
 
         if (this.y > this._to.y) {
-            if (object.bottom < this.top && object.bottom > this._to.top) {
-                if (object.left < this._to.right && object.right > this._to.left) {
+            if (object.left < this._to.right && object.right > this._to.left) {
+                if (object.bottom <= this.top && object.bottom >= this._to.top) {
                     this.toY(object.y + this._to.height);
                     this.physics.accelerationY = -(Math.max(Math.abs(this.physics.accelerationY) - this.physics.reflectionDecrement) * this.physics.reflectivity, 0);
                     this.physics.speedY = -this.physics.speedY * this.physics.reflectivity;
@@ -167,30 +167,34 @@ class PhysicsObject {
         }
 
         if (this.x < this._to.x) {
-            if (object.left < this._to.right && object.right > this._to.left && object.top < this._to.bottom && object.bottom > this._to.top) {
-                this.toX(object.x - this._to.width);
-                if (this.physics.jumpedAt == null) {
-                    this.physics.speedX = -this.physics.speedX * this.physics.groundReflectivity;
-                    this.physics.accelerationX = -this.physics.accelerationX * this.physics.groundReflectivity;
-                } else {
-                    this.physics.speedX = -this.physics.speedX * this.physics.airReflectivity;
-                    this.physics.accelerationX = -this.physics.accelerationX * this.physics.airReflectivity;
+            if (object.top < this._to.bottom && object.bottom > this._to.top) {
+                if (object.left <= this._to.right && object.right >= this._to.left) {
+                    this.toX(object.x - this._to.width);
+                    if (this.physics.jumpedAt == null) {
+                        this.physics.speedX = -this.physics.speedX * this.physics.groundReflectivity;
+                        this.physics.accelerationX = -this.physics.accelerationX * this.physics.groundReflectivity;
+                    } else {
+                        this.physics.speedX = -this.physics.speedX * this.physics.airReflectivity;
+                        this.physics.accelerationX = -this.physics.accelerationX * this.physics.airReflectivity;
+                    }
+                    return "left";
                 }
-                return "left";
             }
         }
 
         if (this.x > this._to.x) {
-            if (object.right > this._to.left && object.left < this._to.right && object.top < this._to.bottom && object.bottom > this._to.top) {
-                this.toX(object.x + object.width);
-                if (this.physics.jumpedAt == null) {
-                    this.physics.speedX = -this.physics.speedX * this.physics.groundReflectivity;
-                    this.physics.accelerationX = -this.physics.accelerationX * this.physics.groundReflectivity;
-                } else {
-                    this.physics.speedX = -this.physics.speedX * this.physics.airReflectivity;
-                    this.physics.accelerationX = -this.physics.accelerationX * this.physics.airReflectivity;
+            if (object.top < this._to.bottom && object.bottom > this._to.top) {
+                if (object.right >= this._to.left && object.left <= this._to.right) {
+                    this.toX(object.x + object.width);
+                    if (this.physics.jumpedAt == null) {
+                        this.physics.speedX = -this.physics.speedX * this.physics.groundReflectivity;
+                        this.physics.accelerationX = -this.physics.accelerationX * this.physics.groundReflectivity;
+                    } else {
+                        this.physics.speedX = -this.physics.speedX * this.physics.airReflectivity;
+                        this.physics.accelerationX = -this.physics.accelerationX * this.physics.airReflectivity;
+                    }
+                    return "right";
                 }
-                return "right";
             }
         }
 
