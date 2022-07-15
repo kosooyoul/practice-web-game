@@ -32,15 +32,15 @@
     <canvas id="my-canvas" width="0" height="0" style="width: 100%; height: 100%;"></canvas>
 
     <script src="../components/DefaultCanvasView.js"></script>
-    <script src="../components/MoveAndJumpRenderer.js"></script>
-    <script src="../components/SingleAction4DirectionsJoypad.js"></script>
     <script src="../components/PhysicsObject.js"></script>
+    <script src="../components/SingleAction4DirectionsJoypad.js"></script>
+    <script src="../components/MoveAndJumpSampleRenderer.js"></script>
     <script>
         (function () {
             const canvas = document.querySelector("#my-canvas");
 
             const canvasView = new DefaultCanvasView(canvas);
-            canvasView.setRenderer(new MoveAndJumpRenderer());
+            canvasView.setRenderer(new MoveAndJumpSampleRenderer());
             canvasView.setJoypad(new SingleAction4DirectionsJoypad());
         })();
     </script>
