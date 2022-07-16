@@ -34,13 +34,15 @@
     <script src="../components/DefaultCanvasView.js"></script>
     <script src="../components/PhysicsObject.js"></script>
     <script src="../components/SingleAction4DirectionsJoypad.js"></script>
-    <script src="../components/MoveAndJumpSampleRenderer.js"></script>
+    <script src="../components/PendulumMotion.js"></script>
+    <script src="../components/CharacterObject.js"></script>
+    <script src="../components/AvatarSampleRenderer.js"></script>
     <script>
         (function () {
             const canvas = document.querySelector("#my-canvas");
 
             const canvasView = new DefaultCanvasView(canvas);
-            canvasView.setRenderer(new MoveAndJumpSampleRenderer());
+            canvasView.setRenderer(new AvatarSampleRenderer());
             canvasView.setJoypad(new SingleAction4DirectionsJoypad());
         })();
     </script>
