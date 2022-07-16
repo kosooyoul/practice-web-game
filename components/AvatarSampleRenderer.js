@@ -126,14 +126,14 @@ class AvatarSampleRenderer {
                 this.characterMotion.legTargetAngle = this.characterMotion.legMinAngle
                 this.characterMotion.legSpeedAngle = -this.characterMotion.legSpeedAngle;
             }
-            this.characterMotion.headAngle += (this.characterMotion.headTargetAngle - this.characterMotion.headAngle) * 0.4;
-            this.characterMotion.bodyAngle += (this.characterMotion.bodyTargetAngle - this.characterMotion.bodyAngle) * 0.4;
-            this.characterMotion.armAngle += (this.characterMotion.armTargetAngle - this.characterMotion.armAngle) * 0.4;
-            this.characterMotion.legAngle += (this.characterMotion.legTargetAngle - this.characterMotion.legAngle) * 0.4;
-            this.characterMotion.headDisplayAngle = this.characterMotion.headAngle + this.characterMotion.headAngleOffset;
-            this.characterMotion.bodyDisplayAngle = this.characterMotion.bodyAngle + this.characterMotion.bodyAngleOffset;
-            this.characterMotion.armDisplayAngle = this.characterMotion.armAngle + this.characterMotion.armAngleOffset;
-            this.characterMotion.legDisplayAngle = this.characterMotion.legAngle + this.characterMotion.legAngleOffset;
+            this.characterMotion.headAngle += (this.characterMotion.headTargetAngle + this.characterMotion.headAngleOffset - this.characterMotion.headAngle) * 0.4;
+            this.characterMotion.bodyAngle += (this.characterMotion.bodyTargetAngle + this.characterMotion.bodyAngleOffset - this.characterMotion.bodyAngle) * 0.4;
+            this.characterMotion.armAngle += (this.characterMotion.armTargetAngle + this.characterMotion.armAngleOffset - this.characterMotion.armAngle) * 0.4;
+            this.characterMotion.legAngle += (this.characterMotion.legTargetAngle + this.characterMotion.legAngleOffset - this.characterMotion.legAngle) * 0.4;
+            this.characterMotion.headDisplayAngle = this.characterMotion.headAngle;
+            this.characterMotion.bodyDisplayAngle = this.characterMotion.bodyAngle;
+            this.characterMotion.armDisplayAngle = this.characterMotion.armAngle;
+            this.characterMotion.legDisplayAngle = this.characterMotion.legAngle;
         } else if (status.joypad["left"]) {
             this.characterMotion.direction = "left";
 
@@ -172,34 +172,37 @@ class AvatarSampleRenderer {
                 this.characterMotion.legTargetAngle = -this.characterMotion.legMinAngle
                 this.characterMotion.legSpeedAngle = -this.characterMotion.legSpeedAngle;
             }
-            this.characterMotion.headAngle += (this.characterMotion.headTargetAngle - this.characterMotion.headAngle) * 0.4;
-            this.characterMotion.bodyAngle += (this.characterMotion.bodyTargetAngle - this.characterMotion.bodyAngle) * 0.4;
-            this.characterMotion.armAngle += (this.characterMotion.armTargetAngle - this.characterMotion.armAngle) * 0.4;
-            this.characterMotion.legAngle += (this.characterMotion.legTargetAngle - this.characterMotion.legAngle) * 0.4;
-            this.characterMotion.headDisplayAngle = this.characterMotion.headAngle - this.characterMotion.headAngleOffset;
-            this.characterMotion.bodyDisplayAngle = this.characterMotion.bodyAngle + this.characterMotion.bodyAngleOffset;
-            this.characterMotion.armDisplayAngle = this.characterMotion.armAngle - this.characterMotion.armAngleOffset;
-            this.characterMotion.legDisplayAngle = this.characterMotion.legAngle - this.characterMotion.legAngleOffset;
+            this.characterMotion.headAngle += (this.characterMotion.headTargetAngle - this.characterMotion.headAngleOffset - this.characterMotion.headAngle) * 0.4;
+            this.characterMotion.bodyAngle += (this.characterMotion.bodyTargetAngle - this.characterMotion.bodyAngleOffset - this.characterMotion.bodyAngle) * 0.4;
+            this.characterMotion.armAngle += (this.characterMotion.armTargetAngle - this.characterMotion.armAngleOffset - this.characterMotion.armAngle) * 0.4;
+            this.characterMotion.legAngle += (this.characterMotion.legTargetAngle - this.characterMotion.legAngleOffset - this.characterMotion.legAngle) * 0.4;
+            this.characterMotion.headDisplayAngle = this.characterMotion.headAngle;
+            this.characterMotion.bodyDisplayAngle = this.characterMotion.bodyAngle;
+            this.characterMotion.armDisplayAngle = this.characterMotion.armAngle;
+            this.characterMotion.legDisplayAngle = this.characterMotion.legAngle;
         } else {
             this.characterMotion.headTargetAngle = 0;
             this.characterMotion.bodyTargetAngle = 0;
             this.characterMotion.armTargetAngle = 0;
             this.characterMotion.legTargetAngle = 0;
-            this.characterMotion.headAngle += (this.characterMotion.headTargetAngle - this.characterMotion.headAngle) * 0.4;
-            this.characterMotion.bodyAngle += (this.characterMotion.bodyTargetAngle - this.characterMotion.bodyAngle) * 0.4;
-            this.characterMotion.armAngle += (this.characterMotion.armTargetAngle - this.characterMotion.armAngle) * 0.4;
-            this.characterMotion.legAngle += (this.characterMotion.legTargetAngle - this.characterMotion.legAngle) * 0.4;
-
             if (this.characterMotion.direction == "right") {
-                this.characterMotion.headDisplayAngle = this.characterMotion.headAngle + this.characterMotion.headAngleOffset;
-                this.characterMotion.bodyDisplayAngle = this.characterMotion.bodyAngle + this.characterMotion.bodyAngleOffset;
-                this.characterMotion.armDisplayAngle = this.characterMotion.armAngle + this.characterMotion.armAngleOffset;
-                this.characterMotion.legDisplayAngle = this.characterMotion.legAngle + this.characterMotion.legAngleOffset;
+                this.characterMotion.headAngle += (this.characterMotion.headTargetAngle + this.characterMotion.headAngleOffset - this.characterMotion.headAngle) * 0.4;
+                this.characterMotion.bodyAngle += (this.characterMotion.bodyTargetAngle + this.characterMotion.bodyAngleOffset - this.characterMotion.bodyAngle) * 0.4;
+                this.characterMotion.armAngle += (this.characterMotion.armTargetAngle + this.characterMotion.armAngleOffset - this.characterMotion.armAngle) * 0.4;
+                this.characterMotion.legAngle += (this.characterMotion.legTargetAngle + this.characterMotion.legAngleOffset - this.characterMotion.legAngle) * 0.4;
+                this.characterMotion.headDisplayAngle = this.characterMotion.headAngle;
+                this.characterMotion.bodyDisplayAngle = this.characterMotion.bodyAngle;
+                this.characterMotion.armDisplayAngle = this.characterMotion.armAngle;
+                this.characterMotion.legDisplayAngle = this.characterMotion.legAngle;
             } else if (this.characterMotion.direction == "left") {
-                this.characterMotion.headDisplayAngle = this.characterMotion.headAngle - this.characterMotion.headAngleOffset;
-                this.characterMotion.bodyDisplayAngle = this.characterMotion.bodyAngle - this.characterMotion.bodyAngleOffset;
-                this.characterMotion.armDisplayAngle = this.characterMotion.armAngle - this.characterMotion.armAngleOffset;
-                this.characterMotion.legDisplayAngle = this.characterMotion.legAngle - this.characterMotion.legAngleOffset;
+                this.characterMotion.headAngle += (this.characterMotion.headTargetAngle - this.characterMotion.headAngleOffset - this.characterMotion.headAngle) * 0.4;
+                this.characterMotion.bodyAngle += (this.characterMotion.bodyTargetAngle - this.characterMotion.bodyAngleOffset - this.characterMotion.bodyAngle) * 0.4;
+                this.characterMotion.armAngle += (this.characterMotion.armTargetAngle - this.characterMotion.armAngleOffset - this.characterMotion.armAngle) * 0.4;
+                this.characterMotion.legAngle += (this.characterMotion.legTargetAngle - this.characterMotion.legAngleOffset - this.characterMotion.legAngle) * 0.4;
+                this.characterMotion.headDisplayAngle = this.characterMotion.headAngle;
+                this.characterMotion.bodyDisplayAngle = this.characterMotion.bodyAngle;
+                this.characterMotion.armDisplayAngle = this.characterMotion.armAngle;
+                this.characterMotion.legDisplayAngle = this.characterMotion.legAngle;
             }
         }
 
