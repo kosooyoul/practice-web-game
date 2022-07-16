@@ -7,3 +7,7 @@
   * Move left: left arrow key, touch left side and move left
   * Move right: right arrow key, touch left side and move right
   * Jump/Flap: spacebar, touch right side
+
+* Avatar
+  * See https://game.auoi.net/avatar
+  * Render actor character
