@@ -171,6 +171,25 @@ class CharacterObject {
         if (reverse) {
             context.scale(-1, 1);
         }
+
+        // Eye
+        context.fillStyle = "white";
+        context.fillRect(4, -4, 6, 8);
+        context.fillStyle = "black";
+        context.fillRect(7, -2, 4, 4);
+        context.strokeRect(4, -4, 6, 8);
+
+        context.beginPath();
+        context.moveTo(0, -4);
+        context.lineTo(12, -4);
+        context.stroke();
+        context.closePath();
+        context.moveTo(0, -1);
+        context.lineTo(4, -1);
+        context.stroke();
+        context.closePath();
+
+        // Hair
         context.beginPath();
         context.moveTo(0, -12);
         context.arc(0, -12, 4, Math.PI, Math.PI * 0.5);
