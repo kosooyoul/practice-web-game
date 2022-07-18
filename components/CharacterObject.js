@@ -16,6 +16,16 @@ class CharacterObject {
 
     _testImage;
 
+    _rotationMotion = {
+        angle: 0,
+        targetAngle: 0,
+        angleSpeed: 0,
+        angleSpeedTarget: 0,
+        minAngleSpeed: 0.04,
+        maxAngleSpeed: 0.16,
+        factor: 0.04
+    };
+
     constructor(x, y, width, height, physics) {
         this._head = new PendulumMotion(-0.8 / Math.PI / 2, 0.8 / Math.PI / 2, 0.1 / Math.PI / 2, -1 / Math.PI / 2);
         this._body = new PendulumMotion(-0.8 / Math.PI / 2, 0.8 / Math.PI / 2, 0.1 / Math.PI / 2);
@@ -46,6 +56,16 @@ class CharacterObject {
         this._leg.compute(play, reverse);
 
         this._physics.move();
+
+        // Rotating effect
+        if (this._rotationMotion.angleSpeed < this._rotationMotion.minAngleSpeed + 0.01) {
+            this._rotationMotion.angleSpeedTarget = this._rotationMotion.maxAngleSpeed;
+        } else if (this._rotationMotion.angleSpeed > this._rotationMotion.maxAngleSpeed - 0.01) {
+            this._rotationMotion.angleSpeedTarget = this._rotationMotion.minAngleSpeed;
+        }
+        this._rotationMotion.angleSpeed += (this._rotationMotion.angleSpeedTarget - this._rotationMotion.angleSpeed) * this._rotationMotion.factor;
+        this._rotationMotion.angle += this._rotationMotion.angleSpeed;
+        console.log(this._rotationMotion.angleSpeed)
     }
 
     render(context) {
@@ -61,6 +81,8 @@ class CharacterObject {
         this._renderBody(context, reverse);
         this._renderHead(context, reverse);
         this._renderRightArm(context, reverse);
+
+        this._renderEffect(context);
 
         context.restore();
     }
@@ -246,6 +268,34 @@ class CharacterObject {
         context.fill();
         context.stroke();
         context.closePath();
+
+        context.restore();
+    }
+
+    _renderEffect(context) {
+        context.save();
+
+        context.translate(15, 28);
+
+        context.rotate(this._rotationMotion.angle);
+        context.fillStyle = "rgba(255, 0, 0, 0.8)";
+        context.fillRect(50, -10, 5, 10);
+        context.fillRect(-55, -10, 5, 10);
+
+        context.rotate(-0.18);
+        context.fillStyle = "rgba(255, 0, 0, 0.6)";
+        context.fillRect(50, -10, 5, 10);
+        context.fillRect(-55, -10, 5, 10);
+
+        context.rotate(-0.18);
+        context.fillStyle = "rgba(255, 0, 0, 0.4)";
+        context.fillRect(50, -10, 5, 10);
+        context.fillRect(-55, -10, 5, 10);
+
+        context.rotate(-0.18);
+        context.fillStyle = "rgba(255, 0, 0, 0.2)";
+        context.fillRect(50, -10, 5, 10);
+        context.fillRect(-55, -10, 5, 10);
 
         context.restore();
     }
