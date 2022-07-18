@@ -16,6 +16,8 @@ class DefaultCanvasView {
         bottom: 0
     };
 
+    _tick = 0;
+
     _renderer;
     _joypad;
 
@@ -96,6 +98,8 @@ class DefaultCanvasView {
     }
 
     _compute() {
+        this._tick++;
+
         this._scale = (this._canvas.clientWidth * this._canvas.clientHeight > 800 * 600) ? 1 : 2;
 
         this._canvas.width = this._canvas.clientWidth * this._scale;
@@ -116,7 +120,8 @@ class DefaultCanvasView {
 
         const status = {
             joypad: this._joypad && this._joypad.getStatus(),
-            boundary: this._boundary
+            boundary: this._boundary,
+            tick: this._tick
         };
 
         this._renderer && this._renderer.compute(status);
