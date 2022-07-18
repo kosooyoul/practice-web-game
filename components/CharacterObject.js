@@ -14,6 +14,8 @@ class CharacterObject {
 
     _physics;
 
+    _testImage;
+
     constructor(x, y, width, height, physics) {
         this._head = new PendulumMotion(-0.8 / Math.PI / 2, 0.8 / Math.PI / 2, 0.1 / Math.PI / 2, -1 / Math.PI / 2);
         this._body = new PendulumMotion(-0.8 / Math.PI / 2, 0.8 / Math.PI / 2, 0.1 / Math.PI / 2);
@@ -21,6 +23,10 @@ class CharacterObject {
         this._leg = new PendulumMotion(-6 / Math.PI / 2, 6 / Math.PI / 2, 0.6 / Math.PI / 2);
 
         this._physics = new PhysicsObject(x, y, width, height, physics);
+        
+        const testImage = new Image();
+        testImage.onload = () => this._testImage = testImage;
+        testImage.src = "../assets/rectangle.svg";
     }
 
     compute(status) {
@@ -153,7 +159,7 @@ class CharacterObject {
         context.fill();
         context.stroke();
         context.closePath();
-
+        
         context.restore();
     }
 
@@ -200,6 +206,10 @@ class CharacterObject {
         context.arc(2, -12, 6, Math.PI, Math.PI * 0.2);
         context.stroke();
         context.closePath();
+
+        if (this._testImage) {
+            context.drawImage(this._testImage, 40, 0, 20, 20);
+        }
 
         context.restore();
     }
