@@ -1,11 +1,11 @@
 class CharacterObject {
     direction = "right";
     
-    _style = {
-        skin: "#ffe0d0",
-        top: "#ffaaaa",
-        bottom: "#cccc99",
-    };
+    // _style = {
+    //     skin: "#ffe0d0",
+    //     top: "#ffaaaa",
+    //     bottom: "#cccc99",
+    // };
 
     _head;
     _body;
@@ -13,8 +13,6 @@ class CharacterObject {
     _leg;
 
     _physics;
-
-    _testImage;
 
     _rotationMotion = {
         angle: 0,
@@ -33,10 +31,6 @@ class CharacterObject {
         this._leg = new PendulumMotion(-6 / Math.PI / 2, 6 / Math.PI / 2, 0.6 / Math.PI / 2);
 
         this._physics = new PhysicsObject(x, y, width, height, physics);
-        
-        const testImage = new Image();
-        testImage.onload = () => this._testImage = testImage;
-        testImage.src = "../assets/rectangle.svg";
     }
 
     compute(status) {
@@ -98,15 +92,16 @@ class CharacterObject {
         context.translate(15, 42);
         context.rotate(-this._leg.angle);
 
-        context.fillStyle = this._style.bottom;
-        context.strokeStyle = "black";
-        context.fillRect(-5, 0, 10, 18);
-        context.strokeRect(-5, 0, 10, 18);
+        context.drawImage(AssetManager.getImage("character/leg"), -5, 0);
+        // context.fillStyle = this._style.bottom;
+        // context.strokeStyle = "black";
+        // context.fillRect(-5, 0, 10, 18);
+        // context.strokeRect(-5, 0, 10, 18);
 
-        context.fillStyle = this._style.skin;
-        context.strokeStyle = "black";
-        context.fillRect(-5, 12, 10, 6);
-        context.strokeRect(-5, 12, 10, 6);
+        // context.fillStyle = this._style.skin;
+        // context.strokeStyle = "black";
+        // context.fillRect(-5, 12, 10, 6);
+        // context.strokeRect(-5, 12, 10, 6);
 
         context.restore();
     }
@@ -117,15 +112,16 @@ class CharacterObject {
         context.translate(15, 28);
         context.rotate(this._arm.angle);
 
-        context.fillStyle = this._style.top;
-        context.strokeStyle = "black";
-        context.fillRect(-5, -4, 10, 22);
-        context.strokeRect(-5, -4, 10, 22);
+        context.drawImage(AssetManager.getImage("character/arm"), -5, -4);
+        // context.fillStyle = this._style.top;
+        // context.strokeStyle = "black";
+        // context.fillRect(-5, -4, 10, 22);
+        // context.strokeRect(-5, -4, 10, 22);
 
-        context.fillStyle = this._style.skin;
-        context.strokeStyle = "black";
-        context.fillRect(-5, 7, 10, 11);
-        context.strokeRect(-5, 7, 10, 11);
+        // context.fillStyle = this._style.skin;
+        // context.strokeStyle = "black";
+        // context.fillRect(-5, 7, 10, 11);
+        // context.strokeRect(-5, 7, 10, 11);
 
         context.restore();
     }
@@ -136,15 +132,16 @@ class CharacterObject {
         context.translate(15, 42);
         context.rotate(this._leg.angle);
 
-        context.fillStyle = this._style.bottom;
-        context.strokeStyle = "black";
-        context.fillRect(-5, 0, 10, 18);
-        context.strokeRect(-5, 0, 10, 18);
+        context.drawImage(AssetManager.getImage("character/leg"), -5, 0);
+        // context.fillStyle = this._style.bottom;
+        // context.strokeStyle = "black";
+        // context.fillRect(-5, 0, 10, 18);
+        // context.strokeRect(-5, 0, 10, 18);
 
-        context.fillStyle = this._style.skin;
-        context.strokeStyle = "black";
-        context.fillRect(-5, 12, 10, 6);
-        context.strokeRect(-5, 12, 10, 6);
+        // context.fillStyle = this._style.skin;
+        // context.strokeStyle = "black";
+        // context.fillRect(-5, 12, 10, 6);
+        // context.strokeRect(-5, 12, 10, 6);
 
         context.restore();
     }
@@ -155,32 +152,33 @@ class CharacterObject {
         context.translate(15, 20);
         context.rotate(this._body.angle);
 
-        context.fillStyle = this._style.top;
-        context.strokeStyle = "black";
-        // context.fillRect(-7, 6, 14, 16);
-        // context.strokeRect(-7, 6, 14, 16);
+        context.drawImage(AssetManager.getImage("character/body"), -10, 6);
+        // context.fillStyle = this._style.top;
+        // context.strokeStyle = "black";
 
-        context.beginPath();
-        context.moveTo(-7, 6);
-        context.lineTo(7, 6);
-        context.lineTo(10, 28);
-        context.lineTo(-10, 28);
-        context.lineTo(-7, 6);
-        context.fill();
-        context.stroke();
-        context.closePath();
+        // context.beginPath();
+        // context.moveTo(-7, 6);
+        // context.lineTo(7, 6);
+        // context.lineTo(10, 28);
+        // context.lineTo(-10, 28);
+        // context.lineTo(-7, 6);
+        // context.fill();
+        // context.stroke();
+        // context.closePath();
 
         if (reverse) {
             context.scale(-1, 1);
         }
-        context.fillStyle = "white";
-        context.strokeStyle = "black";
-        context.beginPath();
-        context.moveTo(-8, 20);
-        context.arc(-12, 20, 4, 0, Math.PI * 2);
-        context.fill();
-        context.stroke();
-        context.closePath();
+        
+        context.drawImage(AssetManager.getImage("props/rabbit-tail"), -16, 16);
+        // context.fillStyle = "white";
+        // context.strokeStyle = "black";
+        // context.beginPath();
+        // context.moveTo(-8, 20);
+        // context.arc(-12, 20, 4, 0, Math.PI * 2);
+        // context.fill();
+        // context.stroke();
+        // context.closePath();
         
         context.restore();
     }
@@ -191,47 +189,46 @@ class CharacterObject {
         context.translate(15, 13);
         context.rotate(this._head.angle);
 
-        context.fillStyle = this._style.skin;
-        context.strokeStyle = "black";
-        context.fillRect(-14, -12, 28, 24);
-        context.strokeRect(-14, -12, 28, 24);
+        context.drawImage(AssetManager.getImage("character/head"), -14, -12);
+        // context.fillStyle = this._style.skin;
+        // context.strokeStyle = "black";
+        // context.fillRect(-14, -12, 28, 24);
+        // context.strokeRect(-14, -12, 28, 24);
 
         if (reverse) {
             context.scale(-1, 1);
         }
 
         // Eye
-        context.fillStyle = "white";
-        context.fillRect(4, -4, 6, 8);
-        context.fillStyle = "black";
-        context.fillRect(7, -2, 4, 4);
-        context.strokeRect(4, -4, 6, 8);
+        context.drawImage(AssetManager.getImage("character/eye"), 0, -4);
+        // context.fillStyle = "white";
+        // context.fillRect(4, -4, 6, 8);
+        // context.fillStyle = "black";
+        // context.fillRect(7, -2, 4, 4);
+        // context.strokeRect(4, -4, 6, 8);
 
-        context.beginPath();
-        context.moveTo(0, -4);
-        context.lineTo(12, -4);
-        context.stroke();
-        context.closePath();
-        context.moveTo(0, -1);
-        context.lineTo(4, -1);
-        context.stroke();
-        context.closePath();
+        // context.beginPath();
+        // context.moveTo(0, -4);
+        // context.lineTo(12, -4);
+        // context.stroke();
+        // context.closePath();
+        // context.moveTo(0, -1);
+        // context.lineTo(4, -1);
+        // context.stroke();
+        // context.closePath();
 
         // Hair
-        context.beginPath();
-        context.moveTo(0, -12);
-        context.arc(0, -12, 4, Math.PI, Math.PI * 0.5);
-        context.stroke();
-        context.closePath();
+        context.drawImage(AssetManager.getImage("character/hair"), -4, -16);
+        // context.beginPath();
+        // context.moveTo(0, -12);
+        // context.arc(0, -12, 4, Math.PI, Math.PI * 0.5);
+        // context.stroke();
+        // context.closePath();
 
-        context.beginPath();
-        context.arc(2, -12, 6, Math.PI, Math.PI * 0.2);
-        context.stroke();
-        context.closePath();
-
-        if (this._testImage) {
-            context.drawImage(this._testImage, 40, 0, 20, 20);
-        }
+        // context.beginPath();
+        // context.arc(2, -12, 6, Math.PI, Math.PI * 0.2);
+        // context.stroke();
+        // context.closePath();
 
         context.restore();
     }
@@ -242,32 +239,35 @@ class CharacterObject {
         context.translate(15, 28);
         context.rotate(-this._arm.angle);
 
-        context.fillStyle = this._style.top;
-        context.strokeStyle = "black";
-        context.fillRect(-5, -4, 10, 22);
-        context.strokeRect(-5, -4, 10, 22);
+        context.drawImage(AssetManager.getImage("character/arm"), -5, -4);
+        // context.fillStyle = this._style.top;
+        // context.strokeStyle = "black";
+        // context.fillRect(-5, -4, 10, 22);
+        // context.strokeRect(-5, -4, 10, 22);
 
-        context.fillStyle = this._style.skin;
-        context.strokeStyle = "black";
-        context.fillRect(-5, 7, 10, 11);
-        context.strokeRect(-5, 7, 10, 11);
+        // context.fillStyle = this._style.skin;
+        // context.strokeStyle = "black";
+        // context.fillRect(-5, 7, 10, 11);
+        // context.strokeRect(-5, 7, 10, 11);
         
         if (reverse) {
             context.scale(-1, 1);
         }
-        context.fillStyle = "#ffc0ff";
-        context.strokeStyle = "black";
-        context.beginPath();
-        context.moveTo(5, 12);
-        context.lineTo(12, 12);
-        context.stroke();
-        context.closePath();
+        
+        context.drawImage(AssetManager.getImage("props/lollipop"), 5, 8);
+        // context.fillStyle = "#ffc0ff";
+        // context.strokeStyle = "black";
+        // context.beginPath();
+        // context.moveTo(5, 12);
+        // context.lineTo(12, 12);
+        // context.stroke();
+        // context.closePath();
 
-        context.beginPath();
-        context.arc(16, 12, 4, 0, Math.PI * 2);
-        context.fill();
-        context.stroke();
-        context.closePath();
+        // context.beginPath();
+        // context.arc(16, 12, 4, 0, Math.PI * 2);
+        // context.fill();
+        // context.stroke();
+        // context.closePath();
 
         context.restore();
     }
