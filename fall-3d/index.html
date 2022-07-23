@@ -35,12 +35,14 @@
     <script src="../libraries/CanvasRenderer.js"></script>
     <script src="../libraries/Projector.js"></script>
     <script src="../components/WebGLCanvasView.js"></script>
+    <script src="../components/SingleAction4DirectionsJoypad.js"></script>
 
     <script>
         (function () {
             const canvas = document.querySelector("#my-canvas");
 
             const canvasView = new WebGLCanvasView(canvas);
+            canvasView.setJoypad(new SingleAction4DirectionsJoypad());
         })();
     </script>
 </body>
