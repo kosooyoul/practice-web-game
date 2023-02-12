@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <title>Auoi - game practices - move 3d</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="title" content="Auoi - game practices">
+    <meta name="description" content="auoi game practices">
+    <meta name="keyword" content="auoi">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Auoi - game practices">
+    <meta property="og:description" content="game practices">
+    <meta property="og:image" content="https://www.auoi.net/icons/ahyane-20y-m.png">
+    <meta property="og:url" content="https://www.auoi.net">
+    <meta name="format-detection" content="telephone=no">
+
+    <link rel="shortcut icon" type="image/x-icon" href="https://www.auoi.net/icons/ahyane-20y-m.png">
+    <style>
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+            padding: 0px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="my-canvas" width="0" height="0" style="width: 100%; height: 100%;"></canvas>
+
+    <script src="https://rawgithub.com/mrdoob/three.js/master/build/three.js"></script>
+    <script src="../libraries/Projector.js"></script>
+    <script src="../components/WebGLCanvasView.js"></script>
+    <script src="../components/Physics3DObject.js"></script>
+    <script src="../components/SingleAction4DirectionsJoypad.js"></script>
+    <script src="../components/DefaultWebGLRenderer.js"></script>
+    <script>
+        (function () {
+            const canvas = document.querySelector("#my-canvas");
+
+            const canvasView = new WebGLCanvasView(canvas);
+            canvasView.setRenderer(new DefaultWebGLRenderer());
+            canvasView.setJoypad(new SingleAction4DirectionsJoypad());
+        })();
+    </script>
+</body>
+
+</html>
