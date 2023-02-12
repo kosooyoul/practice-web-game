@@ -87,7 +87,6 @@ class Physics3DObject {
 
     toZ(z) {
         this._to.z = z;
-        console.log(z, '=>', this._to.z)
     }
 
     toXY(x, y) {
