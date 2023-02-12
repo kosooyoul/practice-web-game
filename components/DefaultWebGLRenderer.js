@@ -53,31 +53,6 @@ class DefaultWebGLRenderer {
         this._actorMesh.add(this._camera)
     }
 
-    getSphere() {
-        var geometry = new THREE.SphereGeometry(100, 400, 400, 0, Math.PI * 2, 0, Math.PI * 2);
-        var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, side: THREE.DoubleSide });
-        return new THREE.Mesh(geometry, material);
-    }
-
-    createBlock(parent, x, y, z, length) {
-        const geometry = new THREE.BoxGeometry(10, 10, 10);
-        const material = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.translateX(0);
-        mesh.translateZ(0);
-        mesh.translateY(20);
-        parent.add(mesh);
-        return mesh;
-    }
-
-    createGround(parent, z) {
-        const geometry = new THREE.BoxGeometry(100, 1, 100);
-        const material = new THREE.MeshPhongMaterial({ color: 0x999999 });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.translateY(z);
-        parent.add(mesh);
-    }
-
     compute(status) {
         this._computeMoving(this._actorObject, status);
         this._computeJumping(this._actorObject, status);

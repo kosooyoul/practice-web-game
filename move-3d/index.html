@@ -36,13 +36,13 @@
     <script src="../components/WebGLCanvasView.js"></script>
     <script src="../components/Physics3DObject.js"></script>
     <script src="../components/SingleAction4DirectionsJoypad.js"></script>
-    <script src="../components/DefaultWebGLRenderer.js"></script>
+    <script src="../components/Move3DWebGLRenderer.js"></script>
     <script>
         (function () {
             const canvas = document.querySelector("#my-canvas");
 
             const canvasView = new WebGLCanvasView(canvas);
-            canvasView.setRenderer(new DefaultWebGLRenderer());
+            canvasView.setRenderer(new Move3DWebGLRenderer());
             canvasView.setJoypad(new SingleAction4DirectionsJoypad());
         })();
     </script>

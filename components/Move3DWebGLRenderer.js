@@ -1,4 +1,4 @@
-class DefaultWebGLRenderer {
+class Move3DWebGLRenderer {
     _environment = {
         loopX: true,
         loopY: true,
