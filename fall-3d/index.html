@@ -32,16 +32,15 @@
     <canvas id="my-canvas" width="0" height="0" style="width: 100%; height: 100%;"></canvas>
 
     <script src="https://rawgithub.com/mrdoob/three.js/master/build/three.js"></script>
-    <script src="../libraries/CanvasRenderer.js"></script>
     <script src="../libraries/Projector.js"></script>
-    <script src="../components/WebGLCanvasView.js"></script>
+    <script src="../components/Fall3DWebGLCanvasView.js"></script>
     <script src="../components/SingleAction4DirectionsJoypad.js"></script>
 
     <script>
         (function () {
             const canvas = document.querySelector("#my-canvas");
 
-            const canvasView = new WebGLCanvasView(canvas);
+            const canvasView = new Fall3DWebGLCanvasView(canvas);
             canvasView.setJoypad(new SingleAction4DirectionsJoypad());
         })();
     </script>
