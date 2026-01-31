@@ -6,15 +6,15 @@ import { PLAYER } from '../config/constants.js';
 
 export class Player extends Entity {
   /**
-   * @param {number} x
-   * @param {number} y
+   * @param {number} x - Initial X position (will be set by map spawn)
+   * @param {number} y - Initial Y position (will be set by map spawn)
    * @param {number} width
    * @param {number} height
    * @param {Object} options
    */
   constructor(
-    x = PLAYER.START_X,
-    y = PLAYER.START_Y,
+    x = 0,
+    y = 100,
     width = PLAYER.WIDTH,
     height = PLAYER.HEIGHT,
     options = {}
