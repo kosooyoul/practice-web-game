@@ -3,15 +3,19 @@
  */
 import { Camera } from '../core/Camera.js';
 import { MapLoader } from '../core/MapLoader.js';
+import { TransitionManager, TRANSITION_TYPE } from '../core/TransitionManager.js';
 import { PhysicsWorld } from '../physics/PhysicsWorld.js';
 import { detectGroundCollision, detectBoxCollision, CollisionSide } from '../physics/Collision.js';
 import { Player } from '../entities/Player.js';
 import { Platform } from '../entities/Platform.js';
+import { BOUNDARY_TYPE } from '../config/constants.js';
+import { getMap } from '../maps/index.js';
 
 export class GameScene {
   _game = null;
   _camera = null;
   _mapLoader = null;
+  _transitionManager = null;
   _physicsWorld = null;
   _player = null;
   _platforms = [];
@@ -21,9 +25,15 @@ export class GameScene {
   _mapBounds = null;
   _groundY = 100;
 
+  // Transition state
+  _pendingExit = null;
+  _nextMapData = null;
+  _nextPlatforms = [];
+
   constructor() {
     this._camera = new Camera();
     this._mapLoader = new MapLoader();
+    this._transitionManager = new TransitionManager();
     this._physicsWorld = new PhysicsWorld();
     this._player = new Player();
   }
@@ -79,6 +89,22 @@ export class GameScene {
     // Apply camera settings from map
     const cameraSettings = this._mapLoader.getCameraSettings();
     this._camera.setSmoothing(cameraSettings.smoothing);
+
+    // Configure camera seamless loop
+    const seamlessX = this._mapBounds.LEFT === BOUNDARY_TYPE.SEAMLESS || 
+                      this._mapBounds.RIGHT === BOUNDARY_TYPE.SEAMLESS;
+    const seamlessY = this._mapBounds.TOP === BOUNDARY_TYPE.SEAMLESS || 
+                      this._mapBounds.BOTTOM === BOUNDARY_TYPE.SEAMLESS;
+    const mapWidth = this._mapBounds.MAX_X - this._mapBounds.MIN_X;
+    const mapHeight = this._mapBounds.MAX_Y - this._mapBounds.MIN_Y;
+    
+    this._camera.setSeamlessLoop(seamlessX, seamlessY, mapWidth, mapHeight);
+    this._camera.setBounds({
+      minX: this._mapBounds.MIN_X,
+      maxX: this._mapBounds.MAX_X,
+      minY: this._mapBounds.MIN_Y,
+      maxY: this._mapBounds.MAX_Y,
+    });
 
     // Spawn player at map spawn point
     this._spawnPlayer();
@@ -137,6 +163,9 @@ export class GameScene {
     playerBody.physics.leftJumpingPower = 0;
 
     this._lockedJumpAt = Date.now();
+
+    // Snap camera to new player position
+    this._camera.snapToTarget();
   }
 
   /**
@@ -144,6 +173,18 @@ export class GameScene {
    * @param {Object} status - Game status {tick, boundary, input}
    */
   update(status) {
+    // Update transition if active
+    if (this._transitionManager.isActive) {
+      this._transitionManager.update(this._player.x, this._player.y);
+      
+      // During fade transition, don't update game logic
+      if (this._transitionManager.state === 'fadeOut' || 
+          this._transitionManager.state === 'fadeIn') {
+        this._camera.update();
+        return;
+      }
+    }
+
     const { input } = status;
     const playerBody = this._player.body;
 
@@ -174,8 +215,10 @@ export class GameScene {
       this._spawnPlayer();
     }
 
-    // Check if player entered exit zone
-    this._checkExitZone();
+    // Check if player entered exit zone (only if no transition active)
+    if (!this._transitionManager.isActive) {
+      this._checkExitZone();
+    }
 
     // Update camera to follow player
     this._camera.update();
@@ -186,16 +229,190 @@ export class GameScene {
    */
   _checkExitZone() {
     const playerBody = this._player.body;
-    const exitCheck = this._mapLoader.checkExitZone(
-      playerBody.x,
-      playerBody.y,
-      playerBody.width,
-      playerBody.height
+    const exits = this._mapLoader.getExits();
+
+    for (const exit of exits) {
+      // Check AABB collision
+      if (
+        playerBody.x < exit.x + exit.width &&
+        playerBody.x + playerBody.width > exit.x &&
+        playerBody.y - playerBody.height < exit.y + exit.height &&
+        playerBody.y > exit.y
+      ) {
+        this._startTransition(exit);
+        return;
+      }
+    }
+  }
+
+  /**
+   * Start a transition to another stage
+   * @param {Object} exit - Exit zone data
+   */
+  _startTransition(exit) {
+    const transitionType = exit.transition || TRANSITION_TYPE.NONE;
+    this._pendingExit = exit;
+
+    switch (transitionType) {
+      case TRANSITION_TYPE.FADE:
+        this._transitionManager.startFade({
+          duration: 600,
+          onMidpoint: () => this._onTransitionMidpoint(),
+          onComplete: () => this._onTransitionComplete(),
+        });
+        break;
+
+      case TRANSITION_TYPE.SLIDE:
+        // Pre-load next map for rendering during slide
+        this._preloadNextMap(exit.targetStage);
+        this._transitionManager.startSlide({
+          direction: exit.direction,
+          duration: 1000,
+          currentBounds: this._mapBounds,
+          onMidpoint: () => this._onTransitionMidpoint(),
+          onComplete: () => this._onTransitionComplete(),
+        });
+        break;
+
+      case TRANSITION_TYPE.SEAMLESS:
+        // Pre-load next map for seamless rendering
+        this._preloadNextMap(exit.targetStage);
+        this._transitionManager.startSeamless({
+          direction: exit.direction,
+          currentBounds: this._mapBounds,
+          threshold: 30,
+          onMidpoint: () => this._onTransitionMidpoint(),
+          onComplete: () => this._onTransitionComplete(),
+        });
+        break;
+
+      case TRANSITION_TYPE.WARP:
+        // Warp transition - instant with visual feedback (flash)
+        this._transitionManager.startFade({
+          duration: 200,  // Quick flash
+          onMidpoint: () => this._onTransitionMidpoint(),
+          onComplete: () => this._onTransitionComplete(),
+        });
+        break;
+
+      case TRANSITION_TYPE.NONE:
+      default:
+        // Instant transition
+        this._loadStageWithSpawn(exit.targetStage, exit.targetSpawn);
+        break;
+    }
+  }
+
+  /**
+   * Pre-load next map for slide/seamless transitions
+   * @param {string} stageId
+   */
+  _preloadNextMap(stageId) {
+    this._nextMapData = getMap(stageId);
+    if (this._nextMapData) {
+      this._nextPlatforms = this._nextMapData.platforms.map(
+        (platform) => new Platform(platform.x, platform.y, platform.width, platform.height)
+      );
+    }
+  }
+
+  /**
+   * Called at transition midpoint
+   */
+  _onTransitionMidpoint() {
+    if (!this._pendingExit) {
+      return;
+    }
+
+    // Load the new stage
+    this._loadStageWithSpawn(this._pendingExit.targetStage, this._pendingExit.targetSpawn);
+  }
+
+  /**
+   * Called when transition completes
+   */
+  _onTransitionComplete() {
+    this._pendingExit = null;
+    this._nextMapData = null;
+    this._nextPlatforms = [];
+  }
+
+  /**
+   * Load stage with custom spawn position
+   * @param {string} stageId
+   * @param {Object} customSpawn - Optional custom spawn position
+   */
+  _loadStageWithSpawn(stageId, customSpawn = null) {
+    const mapData = this._mapLoader.loadMap(stageId);
+
+    if (!mapData) {
+      console.error(`[GameScene] Failed to load stage: ${stageId}`);
+      return false;
+    }
+
+    // Cache map data
+    this._mapBounds = this._mapLoader.getMapBounds();
+    this._groundY = this._mapLoader.getGroundY();
+
+    // Create platforms
+    this._platforms = this._mapLoader.getPlatforms().map(
+      (platform) => new Platform(platform.x, platform.y, platform.width, platform.height)
     );
 
-    if (exitCheck.inExit && exitCheck.targetStage) {
-      this.loadStage(exitCheck.targetStage);
+    // Apply camera settings
+    const cameraSettings = this._mapLoader.getCameraSettings();
+    this._camera.setSmoothing(cameraSettings.smoothing);
+
+    // Configure seamless loop
+    const seamlessX = this._mapBounds.LEFT === BOUNDARY_TYPE.SEAMLESS || 
+                      this._mapBounds.RIGHT === BOUNDARY_TYPE.SEAMLESS;
+    const seamlessY = this._mapBounds.TOP === BOUNDARY_TYPE.SEAMLESS || 
+                      this._mapBounds.BOTTOM === BOUNDARY_TYPE.SEAMLESS;
+    const mapWidth = this._mapBounds.MAX_X - this._mapBounds.MIN_X;
+    const mapHeight = this._mapBounds.MAX_Y - this._mapBounds.MIN_Y;
+    
+    this._camera.setSeamlessLoop(seamlessX, seamlessY, mapWidth, mapHeight);
+    this._camera.setBounds({
+      minX: this._mapBounds.MIN_X,
+      maxX: this._mapBounds.MAX_X,
+      minY: this._mapBounds.MIN_Y,
+      maxY: this._mapBounds.MAX_Y,
+    });
+
+    // Spawn player
+    if (customSpawn) {
+      this._spawnPlayerAt(customSpawn.x, customSpawn.y);
+    } else {
+      this._spawnPlayer();
     }
+
+    console.log(`[GameScene] Stage loaded: ${mapData.name}`);
+    return true;
+  }
+
+  /**
+   * Spawn player at specific position
+   * @param {number} x
+   * @param {number} y
+   */
+  _spawnPlayerAt(x, y) {
+    const playerBody = this._player.body;
+
+    playerBody.x = x;
+    playerBody.y = y;
+    playerBody._updateBoundingBox();
+
+    // Reset physics
+    playerBody.physics.speedX = 0;
+    playerBody.physics.speedY = 0;
+    playerBody.physics.accelerationX = 0;
+    playerBody.physics.accelerationY = 0;
+    playerBody.physics.jumpedAt = null;
+    playerBody.physics.flapped = 0;
+    playerBody.physics.leftJumpingPower = 0;
+
+    this._lockedJumpAt = Date.now();
+    this._camera.snapToTarget();
   }
 
   /**
@@ -210,17 +427,175 @@ export class GameScene {
     // Apply camera transform
     this._camera.applyTransform(context);
 
-    // Render world elements (affected by camera)
-    this._renderGround(context, status);
-    this._renderExitZones(context);
-    this._player.render(context, status);
-    this._platforms.forEach((platform) => platform.render(context, status));
+    // Apply slide offset if transitioning
+    if (this._transitionManager.isActive && this._transitionManager.shouldRenderNextMap()) {
+      const offset = this._transitionManager.getCurrentMapOffset();
+      context.translate(offset.x, offset.y);
+    }
+
+    // Check for seamless loop
+    const seamlessX = this._mapBounds.LEFT === BOUNDARY_TYPE.SEAMLESS || 
+                      this._mapBounds.RIGHT === BOUNDARY_TYPE.SEAMLESS;
+    const seamlessY = this._mapBounds.TOP === BOUNDARY_TYPE.SEAMLESS || 
+                      this._mapBounds.BOTTOM === BOUNDARY_TYPE.SEAMLESS;
+
+    // Render world elements with seamless wrapping
+    this._renderWorldWithSeamless(context, status, seamlessX, seamlessY);
+
+    // Render next map during slide transition
+    if (this._transitionManager.isActive && this._transitionManager.shouldRenderNextMap() && this._nextMapData) {
+      this._renderNextMap(context, status);
+    }
 
     // Restore context state (remove camera transform)
     context.restore();
 
     // Render UI elements (not affected by camera)
     this._renderUI(context, status);
+
+    // Render transition overlay (fade effect)
+    this._transitionManager.render(context, status.boundary);
+  }
+
+  /**
+   * Render the next map during slide/seamless transition
+   * @param {CanvasRenderingContext2D} context
+   * @param {Object} status
+   */
+  _renderNextMap(context, status) {
+    const offset = this._transitionManager.getNextMapOffset();
+    
+    context.save();
+    context.translate(offset.x, offset.y);
+
+    // Render next map ground
+    const nextBounds = this._nextMapData.bounds;
+    const nextGroundY = this._nextMapData.groundY;
+
+    context.strokeStyle = '#000000';
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(nextBounds.minX, nextGroundY);
+    context.lineTo(nextBounds.maxX, nextGroundY);
+    context.stroke();
+    context.closePath();
+
+    // Render next map boundary
+    context.strokeStyle = '#cccccc';
+    context.setLineDash([5, 5]);
+    context.strokeRect(
+      nextBounds.minX,
+      nextBounds.minY,
+      nextBounds.maxX - nextBounds.minX,
+      nextBounds.maxY - nextBounds.minY
+    );
+    context.setLineDash([]);
+
+    // Render next map platforms
+    this._nextPlatforms.forEach((platform) => platform.render(context, status));
+
+    context.restore();
+  }
+
+  /**
+   * Render world elements with seamless loop support
+   * @param {CanvasRenderingContext2D} context
+   * @param {Object} status
+   * @param {boolean} seamlessX
+   * @param {boolean} seamlessY
+   */
+  _renderWorldWithSeamless(context, status, seamlessX, seamlessY) {
+    const mapWidth = this._mapBounds.MAX_X - this._mapBounds.MIN_X;
+    const mapHeight = this._mapBounds.MAX_Y - this._mapBounds.MIN_Y;
+
+    // Calculate which offsets to render
+    const offsetsX = seamlessX ? [-mapWidth, 0, mapWidth] : [0];
+    const offsetsY = seamlessY ? [-mapHeight, 0, mapHeight] : [0];
+
+    // Render all offset combinations
+    for (const offsetX of offsetsX) {
+      for (const offsetY of offsetsY) {
+        context.save();
+        context.translate(offsetX, offsetY);
+
+        // Render ground
+        this._renderGround(context, status, !seamlessX);
+        
+        // Render exit zones (only in main area)
+        if (offsetX === 0 && offsetY === 0) {
+          this._renderExitZones(context);
+        }
+
+        // Render platforms
+        this._platforms.forEach((platform) => platform.render(context, status));
+
+        context.restore();
+      }
+    }
+
+    // Render player (only once, at actual position)
+    this._player.render(context, status);
+
+    // Also render player ghost at wrapped positions for seamless visual
+    if (seamlessX || seamlessY) {
+      this._renderPlayerGhosts(context, status, seamlessX, seamlessY, mapWidth, mapHeight);
+    }
+  }
+
+  /**
+   * Render player ghosts at wrapped positions for seamless visual
+   * @param {CanvasRenderingContext2D} context
+   * @param {Object} status
+   * @param {boolean} seamlessX
+   * @param {boolean} seamlessY
+   * @param {number} mapWidth
+   * @param {number} mapHeight
+   */
+  _renderPlayerGhosts(context, status, seamlessX, seamlessY, mapWidth, mapHeight) {
+    const playerX = this._player.x;
+    const playerY = this._player.y;
+    const edgeThreshold = 100; // How close to edge to show ghost
+
+    // Check if player is near edge and render ghosts
+    if (seamlessX) {
+      const distToLeft = playerX - this._mapBounds.MIN_X;
+      const distToRight = this._mapBounds.MAX_X - (playerX + this._player.width);
+
+      if (distToLeft < edgeThreshold) {
+        // Near left edge - show ghost on right
+        context.save();
+        context.translate(mapWidth, 0);
+        this._player.render(context, status);
+        context.restore();
+      }
+      if (distToRight < edgeThreshold) {
+        // Near right edge - show ghost on left
+        context.save();
+        context.translate(-mapWidth, 0);
+        this._player.render(context, status);
+        context.restore();
+      }
+    }
+
+    if (seamlessY) {
+      const distToTop = (playerY - this._player.height) - this._mapBounds.MIN_Y;
+      const distToBottom = this._mapBounds.MAX_Y - playerY;
+
+      if (distToTop < edgeThreshold) {
+        // Near top edge - show ghost on bottom
+        context.save();
+        context.translate(0, mapHeight);
+        this._player.render(context, status);
+        context.restore();
+      }
+      if (distToBottom < edgeThreshold) {
+        // Near bottom edge - show ghost on top
+        context.save();
+        context.translate(0, -mapHeight);
+        this._player.render(context, status);
+        context.restore();
+      }
+    }
   }
 
   /**
@@ -241,44 +616,98 @@ export class GameScene {
    */
   _handlePlatformCollisions() {
     const playerBody = this._player.body;
+    
+    // Check for seamless loop
+    const seamlessX = this._mapBounds.LEFT === BOUNDARY_TYPE.SEAMLESS || 
+                      this._mapBounds.RIGHT === BOUNDARY_TYPE.SEAMLESS;
+    const seamlessY = this._mapBounds.TOP === BOUNDARY_TYPE.SEAMLESS || 
+                      this._mapBounds.BOTTOM === BOUNDARY_TYPE.SEAMLESS;
+
+    const mapWidth = this._mapBounds.MAX_X - this._mapBounds.MIN_X;
+    const mapHeight = this._mapBounds.MAX_Y - this._mapBounds.MIN_Y;
 
     this._platforms.forEach((platform) => {
-      const collision = detectBoxCollision(playerBody, platform.body);
+      // Check collision with original platform
+      this._checkAndHandlePlatformCollision(playerBody, platform.body);
 
-      switch (collision) {
-        case CollisionSide.TOP:
-          playerBody.handleBoxTopLanding(platform.body);
-          this._lockedJumpAt = Date.now();
-          break;
+      // For seamless loop, also check wrapped platform positions
+      if (seamlessX) {
+        // Create virtual platforms at wrapped positions
+        this._checkAndHandlePlatformCollision(playerBody, platform.body, -mapWidth, 0);
+        this._checkAndHandlePlatformCollision(playerBody, platform.body, mapWidth, 0);
+      }
 
-        case CollisionSide.BOTTOM:
-          playerBody.handleBoxBottomHit(platform.body);
-          break;
+      if (seamlessY) {
+        this._checkAndHandlePlatformCollision(playerBody, platform.body, 0, -mapHeight);
+        this._checkAndHandlePlatformCollision(playerBody, platform.body, 0, mapHeight);
+      }
 
-        case CollisionSide.LEFT:
-          playerBody.handleBoxLeftHit(platform.body);
-          break;
-
-        case CollisionSide.RIGHT:
-          playerBody.handleBoxRightHit(platform.body);
-          break;
-
-        case 'fall':
-          playerBody.handleFall();
-          break;
-
-        default:
-          break;
+      if (seamlessX && seamlessY) {
+        // Diagonal wraps
+        this._checkAndHandlePlatformCollision(playerBody, platform.body, -mapWidth, -mapHeight);
+        this._checkAndHandlePlatformCollision(playerBody, platform.body, mapWidth, -mapHeight);
+        this._checkAndHandlePlatformCollision(playerBody, platform.body, -mapWidth, mapHeight);
+        this._checkAndHandlePlatformCollision(playerBody, platform.body, mapWidth, mapHeight);
       }
     });
+  }
+
+  /**
+   * Check and handle collision with a platform (with optional offset for seamless)
+   * @param {PhysicsBody} playerBody
+   * @param {PhysicsBody} platformBody
+   * @param {number} offsetX
+   * @param {number} offsetY
+   */
+  _checkAndHandlePlatformCollision(playerBody, platformBody, offsetX = 0, offsetY = 0) {
+    // Create a virtual platform body with offset
+    const virtualPlatform = {
+      x: platformBody.x + offsetX,
+      y: platformBody.y + offsetY,
+      width: platformBody.width,
+      height: platformBody.height,
+      left: platformBody.left + offsetX,
+      right: platformBody.right + offsetX,
+      top: platformBody.top + offsetY,
+      bottom: platformBody.bottom + offsetY,
+    };
+
+    const collision = detectBoxCollision(playerBody, virtualPlatform);
+
+    switch (collision) {
+      case CollisionSide.TOP:
+        playerBody.handleBoxTopLanding(virtualPlatform);
+        this._lockedJumpAt = Date.now();
+        break;
+
+      case CollisionSide.BOTTOM:
+        playerBody.handleBoxBottomHit(virtualPlatform);
+        break;
+
+      case CollisionSide.LEFT:
+        playerBody.handleBoxLeftHit(virtualPlatform);
+        break;
+
+      case CollisionSide.RIGHT:
+        playerBody.handleBoxRightHit(virtualPlatform);
+        break;
+
+      case 'fall':
+        playerBody.handleFall();
+        break;
+
+      default:
+        break;
+    }
   }
 
   /**
    * Render ground line (world space)
    * @param {CanvasRenderingContext2D} context
    * @param {Object} _status
+   * @param {boolean} showBoundary - Whether to show boundary markers
    */
-  _renderGround(context, _status) {
+  _renderGround(context, _status, showBoundary = true) {
     context.strokeStyle = '#000000';
     context.lineWidth = 1;
     context.beginPath();
@@ -287,16 +716,18 @@ export class GameScene {
     context.stroke();
     context.closePath();
 
-    // Render map boundary markers (optional visual guide)
-    context.strokeStyle = '#cccccc';
-    context.setLineDash([5, 5]);
-    context.strokeRect(
-      this._mapBounds.MIN_X,
-      this._mapBounds.MIN_Y,
-      this._mapBounds.MAX_X - this._mapBounds.MIN_X,
-      this._mapBounds.MAX_Y - this._mapBounds.MIN_Y
-    );
-    context.setLineDash([]);
+    // Render map boundary markers (only if not seamless)
+    if (showBoundary) {
+      context.strokeStyle = '#cccccc';
+      context.setLineDash([5, 5]);
+      context.strokeRect(
+        this._mapBounds.MIN_X,
+        this._mapBounds.MIN_Y,
+        this._mapBounds.MAX_X - this._mapBounds.MIN_X,
+        this._mapBounds.MAX_Y - this._mapBounds.MIN_Y
+      );
+      context.setLineDash([]);
+    }
   }
 
   /**

@@ -17,13 +17,15 @@ export const CAMERA = {
 /**
  * Boundary behavior types:
  * - 'block': Stop at boundary (can't pass)
- * - 'loop': Wrap to opposite side
+ * - 'warp': Wrap to opposite side (instant teleport, camera jumps)
+ * - 'seamless': Seamless loop (map repeats infinitely, no visual break)
  * - 'respawn': Respawn player at start position
  * - 'none': No restriction (can go beyond)
  */
 export const BOUNDARY_TYPE = {
   BLOCK: 'block',
-  LOOP: 'loop',
+  WARP: 'warp',
+  SEAMLESS: 'seamless',
   RESPAWN: 'respawn',
   NONE: 'none',
 };

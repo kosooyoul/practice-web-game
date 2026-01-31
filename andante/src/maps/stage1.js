@@ -2,6 +2,7 @@
  * Stage 1 - Tutorial / Starting Area
  */
 import { BOUNDARY_TYPE } from '../config/constants.js';
+import { TRANSITION_TYPE, TRANSITION_DIRECTION } from '../core/TransitionManager.js';
 
 export const stage1 = {
   id: 'stage1',
@@ -65,7 +66,7 @@ export const stage1 = {
     { x: 480, y: -100, width: 100, height: 20 },
   ],
 
-  // Stage exit zones (optional)
+  // Stage exit zones
   exits: [
     {
       x: 580,
@@ -73,6 +74,10 @@ export const stage1 = {
       width: 20,
       height: 100,
       targetStage: 'stage2',
+      transition: TRANSITION_TYPE.FADE,  // Fade transition to stage2
+      direction: TRANSITION_DIRECTION.RIGHT,
+      // Player spawn offset in target stage (relative to exit position)
+      targetSpawn: { x: -380, y: 100 },
     },
   ],
 };

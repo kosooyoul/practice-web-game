@@ -2,6 +2,7 @@
  * Stage 3 - Wide Open Area
  */
 import { BOUNDARY_TYPE } from '../config/constants.js';
+import { TRANSITION_TYPE, TRANSITION_DIRECTION } from '../core/TransitionManager.js';
 
 export const stage3 = {
   id: 'stage3',
@@ -24,8 +25,8 @@ export const stage3 = {
 
   // Boundary behaviors
   boundary: {
-    left: BOUNDARY_TYPE.LOOP,
-    right: BOUNDARY_TYPE.LOOP,
+    left: BOUNDARY_TYPE.BLOCK,
+    right: BOUNDARY_TYPE.BLOCK,
     top: BOUNDARY_TYPE.BLOCK,
     bottom: BOUNDARY_TYPE.RESPAWN,
   },
@@ -83,8 +84,22 @@ export const stage3 = {
     // Secret high area
     { x: -400, y: -400, width: 150, height: 20 },
     { x: 250, y: -450, width: 150, height: 20 },
+
+    // Warp platform (far right top)
+    { x: 720, y: -200, width: 60, height: 20 },
   ],
 
-  // No exits - final stage
-  exits: [],
+  // Exit to stageLoop via warp
+  exits: [
+    {
+      x: 720,
+      y: -250,
+      width: 60,
+      height: 50,
+      targetStage: 'stageLoop',
+      transition: TRANSITION_TYPE.WARP,
+      direction: TRANSITION_DIRECTION.RIGHT,
+      targetSpawn: { x: 0, y: 100 },
+    },
+  ],
 };

@@ -4,16 +4,21 @@
 import { stage1 } from './stage1.js';
 import { stage2 } from './stage2.js';
 import { stage3 } from './stage3.js';
+import { stageLoop } from './stageLoop.js';
 
 // Map registry by ID
 export const MAPS = {
   stage1,
   stage2,
   stage3,
+  stageLoop,
 };
 
 // Stage order for progression
 export const STAGE_ORDER = ['stage1', 'stage2', 'stage3'];
+
+// Special stages (not in main progression)
+export const SPECIAL_STAGES = ['stageLoop'];
 
 // Get map by ID
 export const getMap = (mapId) => {

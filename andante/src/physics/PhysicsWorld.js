@@ -73,6 +73,7 @@ export class PhysicsWorld {
    */
   _applyHorizontalBoundary(body, nextX, mapBounds, side) {
     const boundaryType = mapBounds[side];
+    const mapWidth = mapBounds.MAX_X - mapBounds.MIN_X;
 
     switch (boundaryType) {
       case BOUNDARY_TYPE.BLOCK:
@@ -85,11 +86,21 @@ export class PhysicsWorld {
         body.physics.accelerationX = 0;
         break;
 
-      case BOUNDARY_TYPE.LOOP:
+      case BOUNDARY_TYPE.WARP:
+        // Instant teleport to opposite side
         if (side === 'LEFT') {
           nextX = mapBounds.MAX_X - body.width;
         } else {
           nextX = mapBounds.MIN_X;
+        }
+        break;
+
+      case BOUNDARY_TYPE.SEAMLESS:
+        // Seamless wrap - adjust position while maintaining continuity
+        if (side === 'LEFT') {
+          nextX = nextX + mapWidth;
+        } else {
+          nextX = nextX - mapWidth;
         }
         break;
 
@@ -187,6 +198,7 @@ export class PhysicsWorld {
    */
   _applyVerticalBoundary(body, nextY, mapBounds, side) {
     const boundaryType = mapBounds[side];
+    const mapHeight = mapBounds.MAX_Y - mapBounds.MIN_Y;
 
     switch (boundaryType) {
       case BOUNDARY_TYPE.BLOCK:
@@ -202,11 +214,21 @@ export class PhysicsWorld {
         }
         break;
 
-      case BOUNDARY_TYPE.LOOP:
+      case BOUNDARY_TYPE.WARP:
+        // Instant teleport to opposite side
         if (side === 'TOP') {
           nextY = mapBounds.MAX_Y;
         } else {
           nextY = mapBounds.MIN_Y + body.height;
+        }
+        break;
+
+      case BOUNDARY_TYPE.SEAMLESS:
+        // Seamless wrap - adjust position while maintaining continuity
+        if (side === 'TOP') {
+          nextY = nextY + mapHeight;
+        } else {
+          nextY = nextY - mapHeight;
         }
         break;
 

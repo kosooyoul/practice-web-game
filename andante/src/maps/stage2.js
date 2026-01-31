@@ -2,6 +2,7 @@
  * Stage 2 - Vertical Challenge
  */
 import { BOUNDARY_TYPE } from '../config/constants.js';
+import { TRANSITION_TYPE, TRANSITION_DIRECTION } from '../core/TransitionManager.js';
 
 export const stage2 = {
   id: 'stage2',
@@ -87,6 +88,9 @@ export const stage2 = {
       width: 200,
       height: 50,
       targetStage: 'stage3',
+      transition: TRANSITION_TYPE.SLIDE,  // Slide transition to stage3
+      direction: TRANSITION_DIRECTION.UP,
+      targetSpawn: { x: -700, y: 100 },
     },
   ],
 };
