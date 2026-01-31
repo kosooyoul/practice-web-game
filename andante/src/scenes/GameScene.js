@@ -27,6 +27,7 @@ export class GameScene {
 
   // Transition state
   _pendingExit = null;
+  _transitionPlayerPos = null;  // Player position at transition start
   _nextMapData = null;
   _nextPlatforms = [];
 
@@ -271,6 +272,8 @@ export class GameScene {
       case TRANSITION_TYPE.SLIDE:
         // Pre-load next map for rendering during slide
         this._preloadNextMap(exit.targetStage);
+        // Save player position at slide start
+        this._transitionPlayerPos = { x: this._player.x, y: this._player.y };
         this._transitionManager.startSlide({
           direction: exit.direction,
           duration: 1000,
@@ -340,6 +343,7 @@ export class GameScene {
    */
   _onTransitionComplete() {
     this._pendingExit = null;
+    this._transitionPlayerPos = null;
     this._nextMapData = null;
     this._nextPlatforms = [];
 
@@ -355,7 +359,14 @@ export class GameScene {
     if (this._pendingExit) {
       this._loadStageWithSpawn(this._pendingExit.targetStage, this._pendingExit.targetSpawn);
     }
-    this._onTransitionComplete();
+
+    this._pendingExit = null;
+    this._transitionPlayerPos = null;
+    this._nextMapData = null;
+    this._nextPlatforms = [];
+
+    // Camera snaps to new player position (targetSpawn)
+    this._camera.snapToTarget();
   }
 
   /**
@@ -383,6 +394,7 @@ export class GameScene {
     // Apply camera settings
     const cameraSettings = this._mapLoader.getCameraSettings();
     this._camera.setSmoothing(cameraSettings.smoothing);
+    this._camera.setOffset(cameraSettings.offsetX, cameraSettings.offsetY);
 
     // Configure seamless loop
     const seamlessX = this._mapBounds.LEFT === BOUNDARY_TYPE.SEAMLESS || 
@@ -458,10 +470,18 @@ export class GameScene {
       const nextOffset = this._transitionManager.getNextMapOffset();
 
       // Calculate coordinate transform for next map
-      // Align next map's targetSpawn with current player position
+      // Use saved player position from slide start for consistency
+      const playerPos = this._transitionPlayerPos || { x: this._player.x, y: this._player.y };
       const targetSpawn = this._pendingExit.targetSpawn || { x: 0, y: 0 };
-      const mapAlignX = this._player.x - targetSpawn.x;
-      const mapAlignY = this._player.y - targetSpawn.y;
+      
+      // Account for camera offset difference between maps
+      const currentCameraOffset = this._mapLoader.getCameraSettings();
+      const nextCameraOffset = this._nextMapData.camera || { offsetX: 0, offsetY: -50 };
+      const cameraOffsetDiffX = (nextCameraOffset.offsetX || 0) - (currentCameraOffset.offsetX || 0);
+      const cameraOffsetDiffY = (nextCameraOffset.offsetY || -50) - (currentCameraOffset.offsetY || -50);
+      
+      const mapAlignX = playerPos.x - targetSpawn.x + cameraOffsetDiffX;
+      const mapAlignY = playerPos.y - targetSpawn.y + cameraOffsetDiffY;
 
       // Render current map without player (slides out)
       context.save();
