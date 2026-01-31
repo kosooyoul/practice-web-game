@@ -5,15 +5,31 @@
 import { PendulumMotion } from '../animation/PendulumMotion.js';
 import { AssetManager } from '../assets/AssetManager.js';
 
+/**
+ * Air state enum
+ */
+export const AirState = {
+  GROUNDED: 'grounded',
+  RISING: 'rising',
+  FALLING: 'falling',
+};
+
 export class CharacterRenderer {
   _direction = 'right';
   _isMoving = false;
+  _airState = AirState.GROUNDED;
 
   // Pendulum motions for each body part
   _head = null;
   _body = null;
   _arm = null;
   _leg = null;
+
+  // Jump animation angles (target values for smooth interpolation)
+  _jumpHeadAngle = 0;
+  _jumpArmAngle = 0;
+  _jumpLegAngle = 0;
+  _jumpBodyAngle = 0;
 
   // Character dimensions (relative to physics body)
   _scale = 1;
@@ -31,10 +47,12 @@ export class CharacterRenderer {
   }
 
   /**
-   * Update animation state based on input
+   * Update animation state based on input and physics
    * @param {Object} input - Input state {left, right, up, action}
+   * @param {boolean} isInAir - Whether character is in air
+   * @param {number} velocityY - Vertical velocity (negative = rising, positive = falling)
    */
-  update(input) {
+  update(input, isInAir = false, velocityY = 0) {
     // Determine direction and movement state
     if (input.right) {
       this._direction = 'right';
@@ -46,12 +64,33 @@ export class CharacterRenderer {
       this._isMoving = false;
     }
 
-    // Update pendulum animations
+    // Determine air state
+    // velocityY > 0 means rising (jumping up), velocityY < 0 means falling
+    if (isInAir) {
+      this._airState = velocityY > 0 ? AirState.RISING : AirState.FALLING;
+    } else {
+      this._airState = AirState.GROUNDED;
+    }
+
+    // Update animations based on state
     const reverse = this._direction === 'left';
-    this._head.compute(this._isMoving, reverse);
-    this._body.compute(this._isMoving, reverse);
-    this._arm.compute(this._isMoving, reverse);
-    this._leg.compute(this._isMoving, reverse);
+
+    if (this._airState === AirState.GROUNDED) {
+      // Ground animations - pendulum walk cycle
+      this._head.compute(this._isMoving, reverse);
+      this._body.compute(this._isMoving, reverse);
+      this._arm.compute(this._isMoving, reverse);
+      this._leg.compute(this._isMoving, reverse);
+
+      // Reset jump angles smoothly
+      this._jumpHeadAngle += (0 - this._jumpHeadAngle) * 0.3;
+      this._jumpArmAngle += (0 - this._jumpArmAngle) * 0.3;
+      this._jumpLegAngle += (0 - this._jumpLegAngle) * 0.3;
+      this._jumpBodyAngle += (0 - this._jumpBodyAngle) * 0.3;
+    } else {
+      // Air animations - pose based on rising/falling
+      this._updateAirAnimation(velocityY);
+    }
   }
 
   /**
@@ -118,6 +157,54 @@ export class CharacterRenderer {
     return this._isMoving;
   }
 
+  /**
+   * Get air state
+   * @returns {string} AirState value
+   */
+  get airState() {
+    return this._airState;
+  }
+
+  // --- Private animation methods ---
+
+  /**
+   * Update animation for air state (jumping/falling)
+   * @param {number} velocityY - Vertical velocity
+   */
+  _updateAirAnimation(velocityY) {
+    const factor = 0.25; // Smooth interpolation factor
+
+    if (this._airState === AirState.RISING) {
+      // Rising: arms swept back like skydiving, legs trailing back, body forward, head looking up
+      const targetHeadAngle = -0.25; // Head looking up
+      const targetArmAngle = 1.0; // Arms swept back strongly
+      const targetLegAngle = 0.4; // Legs trailing back
+      const targetBodyAngle = 0.15; // Body leaning forward
+
+      this._jumpHeadAngle += (targetHeadAngle - this._jumpHeadAngle) * factor;
+      this._jumpArmAngle += (targetArmAngle - this._jumpArmAngle) * factor;
+      this._jumpLegAngle += (targetLegAngle - this._jumpLegAngle) * factor;
+      this._jumpBodyAngle += (targetBodyAngle - this._jumpBodyAngle) * factor;
+    } else {
+      // Falling: arms up/forward, legs tucked back, body upright, head looking down
+      const targetHeadAngle = 0.2; // Head looking down
+      const targetArmAngle = -2.6; // Arms raised forward
+      const targetLegAngle = 0.3; // Legs tucked back
+      const targetBodyAngle = -0.1; // Body tilted back slightly
+
+      this._jumpHeadAngle += (targetHeadAngle - this._jumpHeadAngle) * factor;
+      this._jumpArmAngle += (targetArmAngle - this._jumpArmAngle) * factor;
+      this._jumpLegAngle += (targetLegAngle - this._jumpLegAngle) * factor;
+      this._jumpBodyAngle += (targetBodyAngle - this._jumpBodyAngle) * factor;
+    }
+
+    // Reset pendulum walk motions when in air
+    this._head.angle += (0 - this._head.angle) * factor;
+    this._body.angle += (this._jumpBodyAngle - this._body.angle) * factor;
+    this._arm.angle += (0 - this._arm.angle) * factor;
+    this._leg.angle += (0 - this._leg.angle) * factor;
+  }
+
   // --- Private render methods ---
 
   _renderCollisionBox(context, width, height) {
@@ -129,7 +216,13 @@ export class CharacterRenderer {
     context.save();
 
     context.translate(15, 42);
-    context.rotate(-this._leg.angle);
+
+    // Apply walk cycle + jump pose
+    const walkAngle = -this._leg.angle;
+    // In air: both legs trail back (same direction based on facing)
+    const directionMultiplier = reverse ? -1 : 1;
+    const jumpAngle = this._airState !== AirState.GROUNDED ? this._jumpLegAngle * directionMultiplier : 0;
+    context.rotate(walkAngle + jumpAngle);
 
     context.drawImage(AssetManager.getImage('character/leg'), -5, 0);
 
@@ -140,7 +233,13 @@ export class CharacterRenderer {
     context.save();
 
     context.translate(15, 28);
-    context.rotate(this._arm.angle);
+
+    // Apply walk cycle + jump pose
+    const walkAngle = this._arm.angle;
+    // In air: both arms go back (same direction based on facing)
+    const directionMultiplier = reverse ? -1 : 1;
+    const jumpAngle = this._airState !== AirState.GROUNDED ? this._jumpArmAngle * directionMultiplier : 0;
+    context.rotate(walkAngle + jumpAngle);
 
     context.drawImage(AssetManager.getImage('character/arm'), -5, -4);
 
@@ -151,7 +250,13 @@ export class CharacterRenderer {
     context.save();
 
     context.translate(15, 42);
-    context.rotate(this._leg.angle);
+
+    // Apply walk cycle + jump pose
+    const walkAngle = this._leg.angle;
+    // In air: both legs trail back (same direction based on facing)
+    const directionMultiplier = reverse ? -1 : 1;
+    const jumpAngle = this._airState !== AirState.GROUNDED ? this._jumpLegAngle * directionMultiplier : 0;
+    context.rotate(walkAngle + jumpAngle);
 
     context.drawImage(AssetManager.getImage('character/leg'), -5, 0);
 
@@ -179,7 +284,12 @@ export class CharacterRenderer {
     context.save();
 
     context.translate(15, 13);
-    context.rotate(this._head.angle);
+
+    // Apply walk cycle + jump pose (same as arms/legs)
+    const walkAngle = this._head.angle;
+    const directionMultiplier = reverse ? -1 : 1;
+    const jumpAngle = this._airState !== AirState.GROUNDED ? this._jumpHeadAngle * directionMultiplier : 0;
+    context.rotate(walkAngle + jumpAngle);
 
     context.drawImage(AssetManager.getImage('character/head'), -14, -12);
 
@@ -200,7 +310,13 @@ export class CharacterRenderer {
     context.save();
 
     context.translate(15, 28);
-    context.rotate(-this._arm.angle);
+
+    // Apply walk cycle + jump pose
+    const walkAngle = -this._arm.angle;
+    // In air: both arms go back (same direction based on facing)
+    const directionMultiplier = reverse ? -1 : 1;
+    const jumpAngle = this._airState !== AirState.GROUNDED ? this._jumpArmAngle * directionMultiplier : 0;
+    context.rotate(walkAngle + jumpAngle);
 
     context.drawImage(AssetManager.getImage('character/arm'), -5, -4);
 

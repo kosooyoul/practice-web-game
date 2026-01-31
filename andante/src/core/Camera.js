@@ -93,6 +93,16 @@ export class Camera {
   }
 
   /**
+   * Set camera follow offset
+   * @param {number} offsetX
+   * @param {number} offsetY
+   */
+  setOffset(offsetX, offsetY) {
+    this._followOffsetX = offsetX;
+    this._followOffsetY = offsetY;
+  }
+
+  /**
    * Snap camera to target position immediately (no smoothing)
    */
   snapToTarget() {
@@ -112,6 +122,18 @@ export class Camera {
     if (this._seamlessY && this._mapHeight > 0) {
       this._y = this._normalizePosition(this._y, this._bounds?.minY ?? 0, this._mapHeight);
     }
+  }
+
+  /**
+   * Adjust camera position by offset (for smooth transitions)
+   * @param {number} offsetX
+   * @param {number} offsetY
+   */
+  adjustPosition(offsetX, offsetY) {
+    this._x += offsetX;
+    this._y += offsetY;
+    this._targetX = this._x;
+    this._targetY = this._y;
   }
 
   /**

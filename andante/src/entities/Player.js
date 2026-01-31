@@ -27,11 +27,15 @@ export class Player extends Entity {
   }
 
   /**
-   * Update character animation based on input
+   * Update character animation based on input and physics state
    * @param {Object} input - Input state {left, right, up, action}
    */
   updateAnimation(input) {
-    this._characterRenderer.update(input);
+    const velocityY = this._body.physics.accelerationY;
+    // In air if: jumped OR actually falling (threshold to avoid ground fluctuation)
+    const fallingThreshold = -3;
+    const isInAir = this._body.isInAir || velocityY < fallingThreshold;
+    this._characterRenderer.update(input, isInAir, velocityY);
   }
 
   /**

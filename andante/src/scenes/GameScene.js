@@ -450,24 +450,33 @@ export class GameScene {
     const isSliding = this._transitionManager.isActive && 
                       this._transitionManager.shouldRenderNextMap();
 
-    if (isSliding && this._nextMapData) {
-      // Slide transition: fixed camera, slide current map out
+    if (isSliding && this._nextMapData && this._pendingExit) {
+      // Slide transition: fixed camera, slide both maps, player stays fixed
       this._camera.applyTransform(context);
       
       const currentOffset = this._transitionManager.getCurrentMapOffset();
+      const nextOffset = this._transitionManager.getNextMapOffset();
 
-      // Render current map (slides out)
+      // Calculate coordinate transform for next map
+      // Align next map's targetSpawn with current player position
+      const targetSpawn = this._pendingExit.targetSpawn || { x: 0, y: 0 };
+      const mapAlignX = this._player.x - targetSpawn.x;
+      const mapAlignY = this._player.y - targetSpawn.y;
+
+      // Render current map without player (slides out)
       context.save();
       context.translate(currentOffset.x, currentOffset.y);
-      this._renderWorldWithSeamless(context, status, false, false);
+      this._renderWorldWithSeamless(context, status, false, false, false);
       context.restore();
 
-      // TODO: Render next map (slides in) - temporarily disabled for testing
-      // const nextOffset = this._transitionManager.getNextMapOffset();
-      // context.save();
-      // context.translate(nextOffset.x, nextOffset.y);
-      // this._renderNextMap(context, status);
-      // context.restore();
+      // Render next map (slides in)
+      context.save();
+      context.translate(nextOffset.x + mapAlignX, nextOffset.y + mapAlignY);
+      this._renderNextMap(context, status);
+      context.restore();
+
+      // Render player at fixed position (no offset)
+      this._player.render(context, status);
     } else {
       // Normal rendering
       this._camera.applyTransform(context);
@@ -531,8 +540,9 @@ export class GameScene {
    * @param {Object} status
    * @param {boolean} seamlessX
    * @param {boolean} seamlessY
+   * @param {boolean} renderPlayer - Whether to render player (default: true)
    */
-  _renderWorldWithSeamless(context, status, seamlessX, seamlessY) {
+  _renderWorldWithSeamless(context, status, seamlessX, seamlessY, renderPlayer = true) {
     const mapWidth = this._mapBounds.MAX_X - this._mapBounds.MIN_X;
     const mapHeight = this._mapBounds.MAX_Y - this._mapBounds.MIN_Y;
 
@@ -562,11 +572,13 @@ export class GameScene {
     }
 
     // Render player (only once, at actual position)
-    this._player.render(context, status);
+    if (renderPlayer) {
+      this._player.render(context, status);
 
-    // Also render player ghost at wrapped positions for seamless visual
-    if (seamlessX || seamlessY) {
-      this._renderPlayerGhosts(context, status, seamlessX, seamlessY, mapWidth, mapHeight);
+      // Also render player ghost at wrapped positions for seamless visual
+      if (seamlessX || seamlessY) {
+        this._renderPlayerGhosts(context, status, seamlessX, seamlessY, mapWidth, mapHeight);
+      }
     }
   }
 
