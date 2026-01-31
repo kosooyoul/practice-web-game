@@ -152,6 +152,7 @@ export class GameScene {
     playerBody.x = spawn.x;
     playerBody.y = spawn.y;
     playerBody._updateBoundingBox();
+    playerBody._clearPendingMove();  // Clear any pending movement
 
     // Reset physics
     playerBody.physics.speedX = 0;
@@ -175,12 +176,13 @@ export class GameScene {
   update(status) {
     // Update transition if active
     if (this._transitionManager.isActive) {
+      const state = this._transitionManager.state;
+      
       this._transitionManager.update(this._player.x, this._player.y);
       
-      // During fade transition, don't update game logic
-      if (this._transitionManager.state === 'fadeOut' || 
-          this._transitionManager.state === 'fadeIn') {
-        this._camera.update();
+      // During fade transition (out/hold/in), don't update game logic
+      // Camera is already snapped to correct position via snapToTarget()
+      if (state === 'fadeOut' || state === 'fadeHold' || state === 'fadeIn') {
         return;
       }
     }
@@ -335,6 +337,9 @@ export class GameScene {
     this._pendingExit = null;
     this._nextMapData = null;
     this._nextPlatforms = [];
+
+    // Ensure camera is properly positioned after transition
+    this._camera.snapToTarget();
   }
 
   /**
@@ -401,6 +406,7 @@ export class GameScene {
     playerBody.x = x;
     playerBody.y = y;
     playerBody._updateBoundingBox();
+    playerBody._clearPendingMove();  // Clear any pending movement
 
     // Reset physics
     playerBody.physics.speedX = 0;

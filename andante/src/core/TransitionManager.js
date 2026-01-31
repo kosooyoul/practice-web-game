@@ -23,6 +23,7 @@ export const TRANSITION_DIRECTION = {
 const STATE = {
   IDLE: 'idle',
   FADE_OUT: 'fadeOut',
+  FADE_HOLD: 'fadeHold',  // Hold black screen while loading
   FADE_IN: 'fadeIn',
   SLIDING: 'sliding',
   SEAMLESS: 'seamless',
@@ -86,6 +87,7 @@ export class TransitionManager {
     this._progress = 0;
     this._fadeAlpha = 0;
     this._startTime = Date.now();
+    this._fadeMidpointCalled = false;
   }
 
   /**
@@ -217,32 +219,59 @@ export class TransitionManager {
 
   // Private methods
 
+  /**
+   * Update fade transition
+   * Flow: fadeOut → fadeHold → fadeIn
+   * 
+   * fadeOut:  Screen darkens (duration/2)
+   * fadeHold: Screen black, load new map, wait for stabilization (100ms)
+   * fadeIn:   Screen brightens (duration/2)
+   */
   _updateFade(elapsed) {
-    const halfDuration = this._duration / 2;
+    const fadeDuration = this._duration / 2;
+    const holdDuration = 100;
 
-    if (this._state === STATE.FADE_OUT) {
-      this._progress = Math.min(elapsed / halfDuration, 1);
-      this._fadeAlpha = this._progress;
+    switch (this._state) {
+      case STATE.FADE_OUT:
+        this._progress = Math.min(elapsed / fadeDuration, 1);
+        this._fadeAlpha = this._progress;
 
-      if (this._progress >= 1) {
-        // Reached midpoint - trigger map load
-        if (this._onMidpoint) {
-          this._onMidpoint();
+        if (this._progress >= 1) {
+          this._state = STATE.FADE_HOLD;
+          this._startTime = Date.now();
+          this._fadeAlpha = 1;
         }
-        this._state = STATE.FADE_IN;
-        this._startTime = Date.now();
-      }
-    } else if (this._state === STATE.FADE_IN) {
-      this._progress = Math.min(elapsed / halfDuration, 1);
-      this._fadeAlpha = 1 - this._progress;
+        break;
 
-      if (this._progress >= 1) {
-        // Transition complete
-        this._state = STATE.IDLE;
-        if (this._onComplete) {
-          this._onComplete();
+      case STATE.FADE_HOLD:
+        // Call midpoint once to load map
+        if (!this._fadeMidpointCalled) {
+          this._fadeMidpointCalled = true;
+          if (this._onMidpoint) {
+            this._onMidpoint();
+          }
+          this._startTime = Date.now();
+          return;
         }
-      }
+
+        // Wait for hold duration then start fade in
+        if (elapsed >= holdDuration) {
+          this._state = STATE.FADE_IN;
+          this._startTime = Date.now();
+        }
+        break;
+
+      case STATE.FADE_IN:
+        this._progress = Math.min(elapsed / fadeDuration, 1);
+        this._fadeAlpha = 1 - this._progress;
+
+        if (this._progress >= 1) {
+          this._state = STATE.IDLE;
+          if (this._onComplete) {
+            this._onComplete();
+          }
+        }
+        break;
     }
   }
 

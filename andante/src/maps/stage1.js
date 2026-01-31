@@ -76,8 +76,8 @@ export const stage1 = {
       targetStage: 'stage2',
       transition: TRANSITION_TYPE.FADE,  // Fade transition to stage2
       direction: TRANSITION_DIRECTION.RIGHT,
-      // Player spawn offset in target stage (relative to exit position)
-      targetSpawn: { x: -380, y: 100 },
+      // Player spawn in target stage (within stage2 bounds: -300 ~ 300)
+      targetSpawn: { x: -290, y: 100 },
     },
   ],
 };
