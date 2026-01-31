@@ -80,6 +80,34 @@ export const stage2 = {
     { x: -100, y: -750, width: 200, height: 30 },
   ],
 
+  // Collectible items - vertical tower climb rewards
+  items: [
+    // Level 1 - jump up from base
+    { type: 'cell', x: 0, y: -50 },    // Midair above center platform
+
+    // Level 2 - jump between left/right
+    { type: 'cell', x: -50, y: -150 }, // Jump from -200,-100 to right
+    { type: 'cell', x: 50, y: -150 },  // Jump from 100,-100 to left
+
+    // Level 3 - risky drop from level 4
+    { type: 'cell', x: -150, y: -250 }, // Fall from -200,-300 to collect
+
+    // Level 4 - jump between sides
+    { type: 'cell', x: 20, y: -350 },   // Midair between -200,-300 and 120,-300
+
+    // Level 5 - above platform
+    { type: 'cell', x: 0, y: -450 },    // Jump from -80,-400 platform
+
+    // Level 6 - precision jumps
+    { type: 'cell', x: -30, y: -550 },  // Between -180,-500 and 120,-500
+
+    // Level 7 - before top
+    { type: 'cell', x: 0, y: -650 },    // Jump from -30,-600 upward
+
+    // Top reward - beside exit zone (exit: x:-100~100, y:-800~-750)
+    { type: 'cell', x: -150, y: -800 }, // Left of exit, high jump
+  ],
+
   // Stage exit zones
   exits: [
     {

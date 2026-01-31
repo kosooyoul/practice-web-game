@@ -66,6 +66,30 @@ export const stage1 = {
     { x: 480, y: -100, width: 100, height: 20 },
   ],
 
+  // Collectible items - placed for gameplay flow
+  items: [
+    // Starting area - easy cells on ground
+    { type: 'cell', x: -100, y: 100 },
+
+    // Jump from ground to first block - midair reward
+    { type: 'cell', x: -25, y: -50 },
+
+    // Stepping stones path - jump between platforms
+    { type: 'cell', x: 160, y: 0 },   // Between 100,50 and 220,0
+    { type: 'cell', x: 280, y: -50 }, // Between 220,0 and 340,-50
+
+    // Fall from stepping stone - drop to collect
+    { type: 'cell', x: 380, y: 20 },  // Below and right of 340,-50
+
+    // Upper path - requires jumping up
+    { type: 'cell', x: -130, y: -150 }, // Jump from -200,-100 upward
+    { type: 'cell', x: 75, y: -200 },   // Between 0,-150 and 150,-200
+
+    // Goal approach - jump to reach
+    { type: 'cell', x: 430, y: -150 },  // Jump before goal platform
+    { type: 'cell', x: 530, y: -150 },  // Above goal, jump to get
+  ],
+
   // Stage exit zones
   exits: [
     {

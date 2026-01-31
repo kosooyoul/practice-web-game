@@ -8,6 +8,7 @@ import { PhysicsWorld } from '../physics/PhysicsWorld.js';
 import { detectGroundCollision, detectBoxCollision, CollisionSide } from '../physics/Collision.js';
 import { Player } from '../entities/Player.js';
 import { Platform } from '../entities/Platform.js';
+import { Item } from '../entities/Item.js';
 import { BOUNDARY_TYPE } from '../config/constants.js';
 import { getMap } from '../maps/index.js';
 
@@ -19,7 +20,11 @@ export class GameScene {
   _physicsWorld = null;
   _player = null;
   _platforms = [];
+  _items = [];
   _lockedJumpAt = null;
+
+  // Player stats
+  _cellCount = 0;
 
   // Current map data cache
   _mapBounds = null;
@@ -49,6 +54,10 @@ export class GameScene {
 
   get currentMapId() {
     return this._mapLoader.currentMapId;
+  }
+
+  get cellCount() {
+    return this._cellCount;
   }
 
   /**
@@ -87,6 +96,9 @@ export class GameScene {
       (platform) => new Platform(platform.x, platform.y, platform.width, platform.height)
     );
 
+    // Create items from map data
+    this._items = this._createItemsFromMapData(mapData);
+
     // Apply camera settings from map
     const cameraSettings = this._mapLoader.getCameraSettings();
     this._camera.setSmoothing(cameraSettings.smoothing);
@@ -116,6 +128,133 @@ export class GameScene {
   }
 
   /**
+   * Create item instances from map data
+   * @param {Object} mapData - Full map data
+   * @returns {Array<Item>}
+   */
+  _createItemsFromMapData(mapData) {
+    const items = [];
+
+    // Create items from map data (data-driven)
+    if (mapData.items) {
+      for (const itemData of mapData.items) {
+        items.push(new Item(itemData.type, itemData.x, itemData.y));
+      }
+    }
+
+    // Generate random cells if specified
+    if (mapData.cellSpawn) {
+      const randomCells = this._generateRandomCells(mapData);
+      items.push(...randomCells);
+    }
+
+    return items;
+  }
+
+  /**
+   * Generate random cell positions based on platforms and ground
+   * @param {Object} mapData
+   * @returns {Array<Item>}
+   */
+  _generateRandomCells(mapData) {
+    const { cellSpawn, platforms, bounds, groundY } = mapData;
+    const count = cellSpawn.count || 5;
+    const itemType = cellSpawn.type || 'cell';
+    const cells = [];
+
+    // Collect spawn areas: platforms + ground segments
+    const spawnAreas = [];
+
+    // Add platforms as spawn areas
+    for (const platform of platforms) {
+      spawnAreas.push({
+        minX: platform.x,
+        maxX: platform.x + platform.width,
+        y: platform.y - platform.height,  // Top of platform
+      });
+    }
+
+    // Add ground segments between platforms
+    const groundSegments = this._findGroundSegments(mapData);
+    for (const segment of groundSegments) {
+      spawnAreas.push({
+        minX: segment.minX,
+        maxX: segment.maxX,
+        y: groundY,
+      });
+    }
+
+    // Generate random cells on spawn areas
+    const usedPositions = [];
+    const minDistance = 50;  // Minimum distance between cells
+
+    for (let i = 0; i < count && spawnAreas.length > 0; i++) {
+      // Pick random spawn area
+      const areaIndex = Math.floor(Math.random() * spawnAreas.length);
+      const area = spawnAreas[areaIndex];
+
+      // Try to find valid position
+      let attempts = 0;
+      let validPosition = null;
+
+      while (attempts < 10 && !validPosition) {
+        const x = area.minX + Math.random() * (area.maxX - area.minX - 24);
+        const y = area.y;
+
+        // Check minimum distance from other cells
+        const isFarEnough = usedPositions.every(
+          (pos) => Math.hypot(pos.x - x, pos.y - y) >= minDistance
+        );
+
+        if (isFarEnough) {
+          validPosition = { x, y };
+        }
+        attempts++;
+      }
+
+      if (validPosition) {
+        cells.push(new Item(itemType, validPosition.x, validPosition.y));
+        usedPositions.push(validPosition);
+      }
+    }
+
+    return cells;
+  }
+
+  /**
+   * Find ground segments not blocked by platforms
+   * @param {Object} mapData
+   * @returns {Array<{minX, maxX}>}
+   */
+  _findGroundSegments(mapData) {
+    const { platforms, bounds, groundY } = mapData;
+    const segments = [];
+
+    // Get platforms that touch ground level
+    const groundPlatforms = platforms
+      .filter((p) => p.y >= groundY && p.y - p.height <= groundY)
+      .map((p) => ({ minX: p.x, maxX: p.x + p.width }))
+      .sort((a, b) => a.minX - b.minX);
+
+    // Find gaps between platforms
+    let currentX = bounds.minX;
+
+    for (const platform of groundPlatforms) {
+      if (platform.minX > currentX + 50) {
+        segments.push({ minX: currentX, maxX: platform.minX });
+      }
+      currentX = Math.max(currentX, platform.maxX);
+    }
+
+    // Add final segment
+    if (bounds.maxX > currentX + 50) {
+      segments.push({ minX: currentX, maxX: bounds.maxX });
+    }
+
+    return segments;
+  }
+
+  /**
    * Load the next stage
    * @returns {boolean} Success
    */
@@ -134,6 +273,9 @@ export class GameScene {
     this._platforms = this._mapLoader.getPlatforms().map(
       (platform) => new Platform(platform.x, platform.y, platform.width, platform.height)
     );
+
+    // Create items from map data
+    this._items = this._createItemsFromMapData(nextMap);
 
     const cameraSettings = this._mapLoader.getCameraSettings();
     this._camera.setSmoothing(cameraSettings.smoothing);
@@ -227,8 +369,55 @@ export class GameScene {
       this._checkExitZone();
     }
 
+    // Update items and check collection
+    this._updateItems(status);
+
     // Update camera to follow player
     this._camera.update();
+  }
+
+  /**
+   * Update items and check for collection
+   * @param {Object} status
+   */
+  _updateItems(status) {
+    for (const item of this._items) {
+      if (item.collected) {
+        continue;
+      }
+
+      // Update item animation
+      item.update(status);
+
+      // Check collision with player
+      if (item.checkCollision(this._player)) {
+        const effect = item.collect();
+        this._applyItemEffect(effect);
+      }
+    }
+  }
+
+  /**
+   * Apply item effect to player/game state
+   * @param {Object} effect
+   */
+  _applyItemEffect(effect) {
+    switch (effect.type) {
+      case 'currency':
+        // Handle currency items (cell, gem, etc.)
+        if (effect.key === 'cell') {
+          this._cellCount += effect.value;
+          console.log(`[GameScene] Cell collected! Total: ${this._cellCount}`);
+        }
+        // Add more currency types here as needed
+        break;
+      case 'heal':
+        // Future: health restoration
+        console.log(`[GameScene] Heal: +${effect.value}`);
+        break;
+      default:
+        console.warn(`[GameScene] Unknown item effect: ${effect.type}`);
+    }
   }
 
   /**
@@ -390,6 +579,9 @@ export class GameScene {
     this._platforms = this._mapLoader.getPlatforms().map(
       (platform) => new Platform(platform.x, platform.y, platform.width, platform.height)
     );
+
+    // Create items from map data
+    this._items = this._createItemsFromMapData(mapData);
 
     // Apply camera settings
     const cameraSettings = this._mapLoader.getCameraSettings();
@@ -586,6 +778,9 @@ export class GameScene {
 
         // Render platforms
         this._platforms.forEach((platform) => platform.render(context, status));
+
+        // Render items
+        this._items.forEach((item) => item.render(context, status));
 
         context.restore();
       }
@@ -849,5 +1044,12 @@ export class GameScene {
       boundary.left + 10,
       boundary.top + 24
     );
+
+    // Cell count display (top right)
+    context.font = 'bold 18px sans-serif';
+    context.fillStyle = '#DAA520';
+    context.textAlign = 'right';
+    context.textBaseline = 'top';
+    context.fillText(`Cell: ${this._cellCount}`, boundary.right - 20, boundary.top + 15);
   }
 }

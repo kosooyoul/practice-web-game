@@ -89,6 +89,37 @@ export const stage3 = {
     { x: 720, y: -200, width: 60, height: 20 },
   ],
 
+  // Collectible items - exploration rewards across wide area
+  items: [
+    // Left side climb path
+    { type: 'cell', x: -650, y: -100 },  // Jump from -750,0 to -600,-50
+    { type: 'cell', x: -620, y: -200 },  // Between -700,-150 and -550,-220
+    { type: 'cell', x: -600, y: -370 },  // Jump to reach from -680,-320
+
+    // Center area - ground level drops
+    { type: 'cell', x: -120, y: 0 },     // Drop between -200,50 and -50,0
+    { type: 'cell', x: 50, y: 0 },       // Drop from -50,0 center
+
+    // Center climb - vertical rewards
+    { type: 'cell', x: -75, y: -150 },   // Jump from -150,-100 platform
+    { type: 'cell', x: 80, y: -150 },    // Jump from 150,-100 platform
+    { type: 'cell', x: 0, y: -250 },     // Between 0,-180 and -80,-300
+    { type: 'cell', x: 0, y: -370 },     // Jump to -30,-420 area
+
+    // Right side path
+    { type: 'cell', x: 360, y: -30 },    // Jump from 300,0 to 420,-70
+    { type: 'cell', x: 450, y: -130 },   // Between 420,-70 and 350,-160
+    { type: 'cell', x: 470, y: -280 },   // Between 500,-230 and 400,-330
+    { type: 'cell', x: 500, y: -360 },   // Jump to 550,-400
+
+    // Secret areas - high reward
+    { type: 'cell', x: -320, y: -450 },  // Above -400,-400 platform
+    { type: 'cell', x: 330, y: -500 },   // Above 250,-450 platform
+
+    // Warp approach (exit: x:720~780, y:-250~-200)
+    { type: 'cell', x: 680, y: -250 },   // Before warp zone, not inside
+  ],
+
   // Exit to stageLoop via warp
   exits: [
     {

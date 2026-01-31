@@ -67,6 +67,24 @@ export const stageLoop = {
     { x: -50, y: -220, width: 100, height: 20 },
   ],
 
+  // Collectible items - loop stage rewards
+  items: [
+    // Ground level - between platforms
+    { type: 'cell', x: -220, y: 50 },   // Gap between -350,50 and -100,50
+    { type: 'cell', x: 30, y: 50 },     // Gap between -100,50 and 150,50
+
+    // Mid level - jump up rewards
+    { type: 'cell', x: -170, y: -70 },  // Jump from -300,-20 area
+    { type: 'cell', x: 80, y: -100 },   // Jump from -50,-50 to 200,-20
+
+    // High platforms - aerial collection
+    { type: 'cell', x: -50, y: -170 },  // Jump from -200,-120 to 100,-150
+    { type: 'cell', x: 200, y: -150 },  // Drop from 300,-100
+
+    // Top reward (exit: x:-30~30, y:-270~-220)
+    { type: 'cell', x: -80, y: -270 },  // Left of warp zone
+  ],
+
   // Exit to stage1 via warp (from top platform)
   exits: [
     {
