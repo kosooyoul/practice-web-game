@@ -1,10 +1,13 @@
 /**
- * Player - Player character entity
+ * Player - Player character entity with animated character rendering
  */
 import { Entity } from './Entity.js';
 import { PLAYER } from '../config/constants.js';
+import { CharacterRenderer } from './CharacterRenderer.js';
 
 export class Player extends Entity {
+  _characterRenderer = null;
+
   /**
    * @param {number} x - Initial X position (will be set by map spawn)
    * @param {number} y - Initial Y position (will be set by map spawn)
@@ -20,16 +23,39 @@ export class Player extends Entity {
     options = {}
   ) {
     super(x, y, width, height, options);
+    this._characterRenderer = new CharacterRenderer();
   }
 
   /**
-   * Render player
+   * Update character animation based on input
+   * @param {Object} input - Input state {left, right, up, action}
+   */
+  updateAnimation(input) {
+    this._characterRenderer.update(input);
+  }
+
+  /**
+   * Get character renderer for direct access
+   * @returns {CharacterRenderer}
+   */
+  get characterRenderer() {
+    return this._characterRenderer;
+  }
+
+  /**
+   * Get current facing direction
+   * @returns {string} 'left' or 'right'
+   */
+  get direction() {
+    return this._characterRenderer.direction;
+  }
+
+  /**
+   * Render player with animated character
    * @param {CanvasRenderingContext2D} context
    * @param {Object} _status
    */
   render(context, _status) {
-    context.strokeStyle = '#000000';
-    context.lineWidth = 1;
-    context.strokeRect(this.x, this.y - this.height, this.width, this.height);
+    this._characterRenderer.render(context, this.x, this.y, this.width, this.height);
   }
 }

@@ -180,15 +180,19 @@ export class GameScene {
       
       this._transitionManager.update(this._player.x, this._player.y);
       
-      // During fade transition (out/hold/in), don't update game logic
-      // Camera is already snapped to correct position via snapToTarget()
-      if (state === 'fadeOut' || state === 'fadeHold' || state === 'fadeIn') {
+      // During transitions, don't update game logic or camera
+      // fade: Camera is snapped via snapToTarget()
+      // slide: Camera stays fixed while maps slide
+      if (state === 'fadeOut' || state === 'fadeHold' || state === 'fadeIn' || state === 'sliding') {
         return;
       }
     }
 
     const { input } = status;
     const playerBody = this._player.body;
+
+    // Update character animation
+    this._player.updateAnimation(input);
 
     // Apply horizontal movement
     this._physicsWorld.applyHorizontalMovement(playerBody, input, this._mapBounds);
@@ -271,8 +275,9 @@ export class GameScene {
           direction: exit.direction,
           duration: 1000,
           currentBounds: this._mapBounds,
-          onMidpoint: () => this._onTransitionMidpoint(),
-          onComplete: () => this._onTransitionComplete(),
+          // Slide: load map at complete (not midpoint) to keep current map visible
+          onMidpoint: null,
+          onComplete: () => this._onSlideComplete(),
         });
         break;
 
@@ -340,6 +345,17 @@ export class GameScene {
 
     // Ensure camera is properly positioned after transition
     this._camera.snapToTarget();
+  }
+
+  /**
+   * Called when slide transition completes
+   * Loads the new map at completion (not midpoint) to keep current map visible during slide
+   */
+  _onSlideComplete() {
+    if (this._pendingExit) {
+      this._loadStageWithSpawn(this._pendingExit.targetStage, this._pendingExit.targetSpawn);
+    }
+    this._onTransitionComplete();
   }
 
   /**
@@ -430,27 +446,39 @@ export class GameScene {
     // Save context state before camera transform
     context.save();
 
-    // Apply camera transform
-    this._camera.applyTransform(context);
+    // Check if slide transition is active
+    const isSliding = this._transitionManager.isActive && 
+                      this._transitionManager.shouldRenderNextMap();
 
-    // Apply slide offset if transitioning
-    if (this._transitionManager.isActive && this._transitionManager.shouldRenderNextMap()) {
-      const offset = this._transitionManager.getCurrentMapOffset();
-      context.translate(offset.x, offset.y);
-    }
+    if (isSliding && this._nextMapData) {
+      // Slide transition: fixed camera, slide current map out
+      this._camera.applyTransform(context);
+      
+      const currentOffset = this._transitionManager.getCurrentMapOffset();
 
-    // Check for seamless loop
-    const seamlessX = this._mapBounds.LEFT === BOUNDARY_TYPE.SEAMLESS || 
-                      this._mapBounds.RIGHT === BOUNDARY_TYPE.SEAMLESS;
-    const seamlessY = this._mapBounds.TOP === BOUNDARY_TYPE.SEAMLESS || 
-                      this._mapBounds.BOTTOM === BOUNDARY_TYPE.SEAMLESS;
+      // Render current map (slides out)
+      context.save();
+      context.translate(currentOffset.x, currentOffset.y);
+      this._renderWorldWithSeamless(context, status, false, false);
+      context.restore();
 
-    // Render world elements with seamless wrapping
-    this._renderWorldWithSeamless(context, status, seamlessX, seamlessY);
+      // TODO: Render next map (slides in) - temporarily disabled for testing
+      // const nextOffset = this._transitionManager.getNextMapOffset();
+      // context.save();
+      // context.translate(nextOffset.x, nextOffset.y);
+      // this._renderNextMap(context, status);
+      // context.restore();
+    } else {
+      // Normal rendering
+      this._camera.applyTransform(context);
 
-    // Render next map during slide transition
-    if (this._transitionManager.isActive && this._transitionManager.shouldRenderNextMap() && this._nextMapData) {
-      this._renderNextMap(context, status);
+      // Check for seamless loop
+      const seamlessX = this._mapBounds.LEFT === BOUNDARY_TYPE.SEAMLESS || 
+                        this._mapBounds.RIGHT === BOUNDARY_TYPE.SEAMLESS;
+      const seamlessY = this._mapBounds.TOP === BOUNDARY_TYPE.SEAMLESS || 
+                        this._mapBounds.BOTTOM === BOUNDARY_TYPE.SEAMLESS;
+
+      this._renderWorldWithSeamless(context, status, seamlessX, seamlessY);
     }
 
     // Restore context state (remove camera transform)
@@ -464,15 +492,11 @@ export class GameScene {
   }
 
   /**
-   * Render the next map during slide/seamless transition
+   * Render the next map during slide transition
    * @param {CanvasRenderingContext2D} context
    * @param {Object} status
    */
   _renderNextMap(context, status) {
-    const offset = this._transitionManager.getNextMapOffset();
-    
-    context.save();
-    context.translate(offset.x, offset.y);
 
     // Render next map ground
     const nextBounds = this._nextMapData.bounds;
@@ -499,8 +523,6 @@ export class GameScene {
 
     // Render next map platforms
     this._nextPlatforms.forEach((platform) => platform.render(context, status));
-
-    context.restore();
   }
 
   /**

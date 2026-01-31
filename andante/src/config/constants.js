@@ -36,7 +36,7 @@ export const PHYSICS = {
   MOVING_POWER_PER_TICK: 0.02,
   MAX_JUMPING_POWER: 18,
   JUMPING_POWER_PER_TICK: 2.2,
-  FLAPPABLE: 1,
+  FLAPPABLE: 10,
   REFLECTION_DECREMENT: 5,
   REFLECTIVITY: 0.2,
   GROUND_RESISTIVITY: 0.18,
@@ -45,10 +45,10 @@ export const PHYSICS = {
   AIR_REFLECTIVITY: 0.15,
 };
 
-// Player defaults
+// Player defaults (sized to match character sprite 30x60)
 export const PLAYER = {
-  WIDTH: 40,
-  HEIGHT: 40,
+  WIDTH: 30,
+  HEIGHT: 60,
 };
 
 // Input key codes
