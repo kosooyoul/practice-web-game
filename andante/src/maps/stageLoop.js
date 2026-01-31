@@ -27,7 +27,7 @@ export const stageLoop = {
   boundary: {
     left: BOUNDARY_TYPE.SEAMLESS,
     right: BOUNDARY_TYPE.SEAMLESS,
-    top: BOUNDARY_TYPE.BLOCK,
+    top: BOUNDARY_TYPE.NONE,
     bottom: BOUNDARY_TYPE.RESPAWN,
   },
 
