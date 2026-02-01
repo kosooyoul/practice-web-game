@@ -700,7 +700,8 @@ export class GameScene {
     };
 
     // Render skybox (sky + far layer with parallax) - screen-fixed
-    this._backgroundLayer.renderSkybox(context, this._camera, viewport);
+    const interpolation = status.interpolation ?? 1;
+    this._backgroundLayer.renderSkybox(context, this._camera, viewport, interpolation);
 
     // Save context state before camera transform
     context.save();

@@ -384,10 +384,13 @@ export class BackgroundLayer {
    * @param {CanvasRenderingContext2D} context
    * @param {Object} camera - Camera object for parallax
    * @param {Object} viewport - Viewport boundaries
+   * @param {number} interpolation - Interpolation factor for smooth rendering (0-1)
    */
-  renderSkybox(context, camera, viewport) {
+  renderSkybox(context, camera, viewport, interpolation = 1) {
+    // Get interpolated camera position for smooth rendering
+    const { x: cameraX, y: cameraY } = camera.getInterpolatedPosition(interpolation);
+
     // Calculate horizon line position on screen
-    const cameraY = camera._y || 0;
     const horizonWorldY = this._groundY;
     const horizonScreenY = horizonWorldY - cameraY;
 
@@ -398,7 +401,7 @@ export class BackgroundLayer {
     this._renderGroundBackground(context, viewport, horizonScreenY);
 
     // Render far layer with parallax (mountains, hills) at horizon
-    this._renderLayerParallax(context, 'far', camera, viewport, LAYER_DEPTH.FAR, horizonScreenY);
+    this._renderLayerParallax(context, 'far', cameraX, viewport, LAYER_DEPTH.FAR, horizonScreenY);
   }
 
   /**
@@ -504,12 +507,12 @@ export class BackgroundLayer {
   /**
    * Render a layer with parallax effect (screen-relative)
    * Used for far background that moves slower than camera
+   * @param {number} cameraX - Interpolated camera X position
    */
-  _renderLayerParallax(context, layerName, camera, viewport, depth, horizonY) {
+  _renderLayerParallax(context, layerName, cameraX, viewport, depth, horizonY) {
     const elements = this._elements[layerName];
     if (!elements || elements.length === 0) return;
 
-    const cameraX = camera._x || 0;
     const { left, right, top, bottom } = viewport;
     const viewWidth = right - left;
 
