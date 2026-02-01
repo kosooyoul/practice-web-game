@@ -7,18 +7,35 @@ export const ITEM_TYPES = {
   cell: {
     name: 'Cell',
     description: 'Basic currency',
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
     effect: { type: 'currency', key: 'cell', value: 1 },
     render: {
-      shape: 'circle',
+      shape: 'hexagon',
       colors: {
-        primary: '#FFD700',
-        secondary: '#DAA520',
-        highlight: '#FFE066',
-        glow: 'rgba(255, 215, 0, 0.3)',
+        fill: 'rgba(135, 206, 250, 0.4)',       // 맑은 하늘색, 반투명
+        stroke: 'rgba(30, 100, 180, 1)',        // 테두리 - 더 진한 파란색
       },
-      glow: true,
+      glow: false,
+      float: true,
+    },
+  },
+
+  seed: {
+    name: 'Seed',
+    description: 'Potato seed with roots',
+    width: 24,
+    height: 28,
+    effect: { type: 'currency', key: 'seed', value: 1 },
+    render: {
+      shape: 'potatoSeed',
+      colors: {
+        body: 'rgba(180, 140, 100, 0.9)',       // 감자색 (베이지/갈색)
+        bodyDark: 'rgba(140, 100, 70, 1)',      // 어두운 감자색
+        roots: 'rgba(100, 80, 60, 0.8)',        // 뿌리 색
+        sprout: 'rgba(120, 160, 80, 0.9)',      // 싹 색 (연두)
+      },
+      glow: false,
       float: true,
     },
   },

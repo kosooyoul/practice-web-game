@@ -46,6 +46,16 @@ export const stage2 = {
     offsetY: -80, // Look more upward
   },
 
+  // Background settings - high altitude tower in clouds
+  background: {
+    sky: 'cloudy',
+    autoGenerate: {
+      mountains: 4,
+      fog: 6,
+      particles: 20,
+    },
+  },
+
   // Platform data - Vertical tower
   platforms: [
     // Base platforms
@@ -106,6 +116,11 @@ export const stage2 = {
 
     // Top reward - beside exit zone (exit: x:-100~100, y:-800~-750)
     { type: 'cell', x: -150, y: -800 }, // Left of exit, high jump
+
+    // Seeds - special collectibles at key climbing points
+    { type: 'seed', x: -150, y: -150 }, // Level 2 left platform
+    { type: 'seed', x: 0, y: -350 },    // Mid tower challenge
+    { type: 'seed', x: 50, y: -800 },   // Top reward
   ],
 
   // Stage exit zones

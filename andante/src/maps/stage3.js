@@ -27,7 +27,7 @@ export const stage3 = {
   boundary: {
     left: BOUNDARY_TYPE.BLOCK,
     right: BOUNDARY_TYPE.BLOCK,
-    top: BOUNDARY_TYPE.BLOCK,
+    top: BOUNDARY_TYPE.NONE,
     bottom: BOUNDARY_TYPE.RESPAWN,
   },
 
@@ -44,6 +44,20 @@ export const stage3 = {
     smoothing: 0.92,
     offsetX: 0,
     offsetY: -50,
+  },
+
+  // Background settings - wide sunset canyon
+  background: {
+    sky: 'sunset',
+    autoGenerate: {
+      mountains: 6,
+      trees: 12,
+      bushes: 10,
+      grass: 30,
+      flowers: 8,
+      butterflies: 4,
+      particles: 12,
+    },
   },
 
   // Platform data - Expansive level
@@ -118,6 +132,12 @@ export const stage3 = {
 
     // Warp approach (exit: x:720~780, y:-250~-200)
     { type: 'cell', x: 680, y: -250 },   // Before warp zone, not inside
+
+    // Seeds - special collectibles across the canyon
+    { type: 'seed', x: -650, y: -370 },  // Left side high climb
+    { type: 'seed', x: 0, y: -470 },     // Center top platform
+    { type: 'seed', x: 580, y: -450 },   // Right side high area
+    { type: 'seed', x: -350, y: -450 },  // Secret area left
   ],
 
   // Exit to stageLoop via warp

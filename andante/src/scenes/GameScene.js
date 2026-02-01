@@ -9,6 +9,7 @@ import { detectGroundCollision, detectBoxCollision, CollisionSide } from '../phy
 import { Player } from '../entities/Player.js';
 import { Platform } from '../entities/Platform.js';
 import { Item } from '../entities/Item.js';
+import { BackgroundLayer } from '../background/BackgroundLayer.js';
 import { BOUNDARY_TYPE } from '../config/constants.js';
 import { getMap } from '../maps/index.js';
 
@@ -18,6 +19,7 @@ export class GameScene {
   _mapLoader = null;
   _transitionManager = null;
   _physicsWorld = null;
+  _backgroundLayer = null;
   _player = null;
   _platforms = [];
   _items = [];
@@ -25,6 +27,11 @@ export class GameScene {
 
   // Player stats
   _cellCount = 0;
+
+  // FPS tracking
+  _lastFrameTime = 0;
+  _frameCount = 0;
+  _fps = 0;
 
   // Current map data cache
   _mapBounds = null;
@@ -41,6 +48,7 @@ export class GameScene {
     this._mapLoader = new MapLoader();
     this._transitionManager = new TransitionManager();
     this._physicsWorld = new PhysicsWorld();
+    this._backgroundLayer = new BackgroundLayer();
     this._player = new Player();
   }
 
@@ -99,15 +107,29 @@ export class GameScene {
     // Create items from map data
     this._items = this._createItemsFromMapData(mapData);
 
-    // Apply camera settings from map
-    const cameraSettings = this._mapLoader.getCameraSettings();
-    this._camera.setSmoothing(cameraSettings.smoothing);
-
-    // Configure camera seamless loop
+    // Check seamless settings
     const seamlessX = this._mapBounds.LEFT === BOUNDARY_TYPE.SEAMLESS || 
                       this._mapBounds.RIGHT === BOUNDARY_TYPE.SEAMLESS;
     const seamlessY = this._mapBounds.TOP === BOUNDARY_TYPE.SEAMLESS || 
                       this._mapBounds.BOTTOM === BOUNDARY_TYPE.SEAMLESS;
+
+    // Initialize background with platforms for surface placement
+    // mapId is used as seed for consistent random generation
+    this._backgroundLayer.init(
+      mapData.background,
+      this._mapBounds,
+      mapData.platforms || [],
+      this._groundY,
+      mapData.id,
+      seamlessX,
+      seamlessY
+    );
+
+    // Apply camera settings from map
+    const cameraSettings = this._mapLoader.getCameraSettings();
+    this._camera.setSmoothing(cameraSettings.smoothing);
+
+    // Configure camera seamless loop (reuse seamlessX/Y from above)
     const mapWidth = this._mapBounds.MAX_X - this._mapBounds.MIN_X;
     const mapHeight = this._mapBounds.MAX_Y - this._mapBounds.MIN_Y;
     
@@ -372,6 +394,9 @@ export class GameScene {
     // Update items and check collection
     this._updateItems(status);
 
+    // Update background animations
+    this._backgroundLayer.update();
+
     // Update camera to follow player
     this._camera.update();
   }
@@ -583,16 +608,30 @@ export class GameScene {
     // Create items from map data
     this._items = this._createItemsFromMapData(mapData);
 
+    // Check seamless settings
+    const seamlessX = this._mapBounds.LEFT === BOUNDARY_TYPE.SEAMLESS || 
+                      this._mapBounds.RIGHT === BOUNDARY_TYPE.SEAMLESS;
+    const seamlessY = this._mapBounds.TOP === BOUNDARY_TYPE.SEAMLESS || 
+                      this._mapBounds.BOTTOM === BOUNDARY_TYPE.SEAMLESS;
+
+    // Initialize background with platforms for surface placement
+    // mapId is used as seed for consistent random generation
+    this._backgroundLayer.init(
+      mapData.background,
+      this._mapBounds,
+      mapData.platforms || [],
+      this._groundY,
+      mapData.id,
+      seamlessX,
+      seamlessY
+    );
+
     // Apply camera settings
     const cameraSettings = this._mapLoader.getCameraSettings();
     this._camera.setSmoothing(cameraSettings.smoothing);
     this._camera.setOffset(cameraSettings.offsetX, cameraSettings.offsetY);
 
-    // Configure seamless loop
-    const seamlessX = this._mapBounds.LEFT === BOUNDARY_TYPE.SEAMLESS || 
-                      this._mapBounds.RIGHT === BOUNDARY_TYPE.SEAMLESS;
-    const seamlessY = this._mapBounds.TOP === BOUNDARY_TYPE.SEAMLESS || 
-                      this._mapBounds.BOTTOM === BOUNDARY_TYPE.SEAMLESS;
+    // Configure seamless loop (reuse seamlessX/Y from above)
     const mapWidth = this._mapBounds.MAX_X - this._mapBounds.MIN_X;
     const mapHeight = this._mapBounds.MAX_Y - this._mapBounds.MIN_Y;
     
@@ -647,6 +686,17 @@ export class GameScene {
    * @param {Object} status - Game status
    */
   render(context, status) {
+    const { boundary } = status;
+    const viewport = {
+      left: boundary.left,
+      right: boundary.right,
+      top: boundary.top,
+      bottom: boundary.bottom,
+    };
+
+    // Render skybox (sky + far layer with parallax) - screen-fixed
+    this._backgroundLayer.renderSkybox(context, this._camera, viewport);
+
     // Save context state before camera transform
     context.save();
 
@@ -689,6 +739,9 @@ export class GameScene {
 
       // Render player at fixed position (no offset)
       this._player.render(context, status);
+
+      // Render map foreground during slide
+      this._backgroundLayer.renderMapForeground(context, status);
     } else {
       // Normal rendering
       this._camera.applyTransform(context);
@@ -700,6 +753,9 @@ export class GameScene {
                         this._mapBounds.BOTTOM === BOUNDARY_TYPE.SEAMLESS;
 
       this._renderWorldWithSeamless(context, status, seamlessX, seamlessY);
+
+      // Render map foreground (grass, flowers, effects - after player)
+      this._backgroundLayer.renderMapForeground(context, status);
     }
 
     // Restore context state (remove camera transform)
@@ -761,6 +817,9 @@ export class GameScene {
     // Calculate which offsets to render
     const offsetsX = seamlessX ? [-mapWidth, 0, mapWidth] : [0];
     const offsetsY = seamlessY ? [-mapHeight, 0, mapHeight] : [0];
+
+    // Render map background (trees, bushes - behind platforms)
+    this._backgroundLayer.renderMapBackground(context, status);
 
     // Render all offset combinations
     for (const offsetX of offsetsX) {
@@ -1045,11 +1104,34 @@ export class GameScene {
       boundary.top + 24
     );
 
+    // FPS display
+    this._updateFPS();
+    context.fillStyle = this._fps < 30 ? '#FF0000' : this._fps < 50 ? '#FFAA00' : '#00AA00';
+    context.fillText(
+      `FPS: ${this._fps}`,
+      boundary.left + 10,
+      boundary.top + 38
+    );
+
     // Cell count display (top right)
     context.font = 'bold 18px sans-serif';
     context.fillStyle = '#DAA520';
     context.textAlign = 'right';
     context.textBaseline = 'top';
     context.fillText(`Cell: ${this._cellCount}`, boundary.right - 20, boundary.top + 15);
+  }
+
+  /**
+   * Update FPS counter
+   */
+  _updateFPS() {
+    const now = performance.now();
+    this._frameCount++;
+
+    if (now - this._lastFrameTime >= 1000) {
+      this._fps = this._frameCount;
+      this._frameCount = 0;
+      this._lastFrameTime = now;
+    }
   }
 }

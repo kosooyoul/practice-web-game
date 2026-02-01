@@ -124,6 +124,12 @@ export class Item extends Entity {
       case 'circle':
         this._renderCircle(context, centerX, centerY, render);
         break;
+      case 'hexagon':
+        this._renderHexagon(context, centerX, centerY, render);
+        break;
+      case 'potatoSeed':
+        this._renderPotatoSeed(context, centerX, centerY, render);
+        break;
       case 'diamond':
         this._renderDiamond(context, centerX, centerY, render);
         break;
@@ -176,6 +182,223 @@ export class Item extends Entity {
     context.strokeStyle = colors.secondary;
     context.lineWidth = 1.5;
     context.stroke();
+  }
+
+  /**
+   * Render hexagon shape (cell-like)
+   */
+  _renderHexagon(context, centerX, centerY, render) {
+    const radius = this.width / 2 - 2;
+    const { colors } = render;
+
+    // Draw hexagon path
+    const drawHexagon = (r) => {
+      context.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 2;
+        const x = centerX + r * Math.cos(angle);
+        const y = centerY + r * Math.sin(angle);
+        if (i === 0) {
+          context.moveTo(x, y);
+        } else {
+          context.lineTo(x, y);
+        }
+      }
+      context.closePath();
+    };
+
+    // Main fill (flat, no gradient)
+    drawHexagon(radius);
+    context.fillStyle = colors.fill;
+    context.fill();
+
+    // Border
+    context.strokeStyle = colors.stroke;
+    context.lineWidth = 1.5;
+    context.stroke();
+
+    // Sparkling edges
+    this._renderHexagonSparkles(context, centerX, centerY, radius);
+  }
+
+  /**
+   * Render potato seed with wrapping vines
+   */
+  _renderPotatoSeed(context, centerX, centerY, render) {
+    const { colors } = render;
+    const w = this.width;
+    const h = this.height;
+    const r = Math.min(w, h) * 0.38;
+
+    // Draw vines wrapping around (back layer)
+    this._renderWrappingVine(context, centerX, centerY, r, colors, 0, true);
+    this._renderWrappingVine(context, centerX, centerY, r, colors, 2, true);
+
+    // Draw potato body
+    this._renderPotatoBody(context, centerX, centerY, w, h, colors);
+
+    // Draw vines wrapping around (front layer)
+    this._renderWrappingVine(context, centerX, centerY, r, colors, 1, false);
+    this._renderWrappingVine(context, centerX, centerY, r, colors, 3, false);
+  }
+
+  /**
+   * Render potato body
+   */
+  _renderPotatoBody(context, centerX, centerY, w, h, colors) {
+    const r = Math.min(w, h) * 0.28;
+
+    // Potato shape
+    context.beginPath();
+    context.ellipse(centerX, centerY, r * 1.1, r * 0.9, 0.1, 0, Math.PI * 2);
+    context.closePath();
+
+    // Gradient fill
+    const gradient = context.createRadialGradient(
+      centerX - r * 0.3, centerY - r * 0.3, 0,
+      centerX, centerY, r * 1.1
+    );
+    gradient.addColorStop(0, 'rgba(230, 200, 160, 1)');
+    gradient.addColorStop(0.5, colors.body);
+    gradient.addColorStop(1, colors.bodyDark);
+    context.fillStyle = gradient;
+    context.fill();
+
+    // Outline
+    context.strokeStyle = colors.bodyDark;
+    context.lineWidth = 1;
+    context.stroke();
+
+    // Highlight
+    context.beginPath();
+    context.ellipse(centerX - r * 0.35, centerY - r * 0.3, r * 0.25, r * 0.15, -0.5, 0, Math.PI * 2);
+    context.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    context.fill();
+
+    // Eyes
+    context.beginPath();
+    context.arc(centerX - r * 0.3, centerY + r * 0.1, 1.5, 0, Math.PI * 2);
+    context.arc(centerX + r * 0.2, centerY - r * 0.2, 1.5, 0, Math.PI * 2);
+    context.fillStyle = 'rgba(100, 70, 50, 0.5)';
+    context.fill();
+  }
+
+  /**
+   * Render a single vine that wraps around the potato
+   */
+  _renderWrappingVine(context, centerX, centerY, radius, colors, index, behind) {
+    context.lineCap = 'round';
+
+    // Each vine starts from different angle and wraps partially around
+    const startAngles = [
+      Math.PI * 0.1,   // top-right
+      Math.PI * 0.6,   // bottom-right  
+      Math.PI * 1.1,   // bottom-left
+      Math.PI * 1.6,   // top-left
+    ];
+    const wrapAmount = [0.45, 0.5, 0.45, 0.4]; // How far each vine wraps (in PI)
+    const outerRadius = [1.35, 1.4, 1.3, 1.35]; // How far out each vine goes
+
+    const startAngle = startAngles[index];
+    const wrap = wrapAmount[index];
+    const outerR = radius * outerRadius[index];
+
+    // Draw arc that goes out and wraps around
+    context.beginPath();
+    
+    // Start from potato surface
+    const startX = centerX + Math.cos(startAngle) * radius * 0.9;
+    const startY = centerY + Math.sin(startAngle) * radius * 0.9;
+    context.moveTo(startX, startY);
+
+    // Go outward then wrap around
+    const midAngle = startAngle + wrap * Math.PI * 0.5;
+    const endAngle = startAngle + wrap * Math.PI;
+    
+    const midX = centerX + Math.cos(midAngle) * outerR;
+    const midY = centerY + Math.sin(midAngle) * outerR;
+    
+    const endX = centerX + Math.cos(endAngle) * radius * 0.85;
+    const endY = centerY + Math.sin(endAngle) * radius * 0.85;
+
+    // Control points
+    const cp1X = centerX + Math.cos(startAngle + wrap * Math.PI * 0.2) * outerR * 0.95;
+    const cp1Y = centerY + Math.sin(startAngle + wrap * Math.PI * 0.2) * outerR * 0.95;
+    const cp2X = centerX + Math.cos(startAngle + wrap * Math.PI * 0.8) * outerR * 0.9;
+    const cp2Y = centerY + Math.sin(startAngle + wrap * Math.PI * 0.8) * outerR * 0.9;
+
+    context.quadraticCurveTo(cp1X, cp1Y, midX, midY);
+    context.quadraticCurveTo(cp2X, cp2Y, endX, endY);
+
+    context.strokeStyle = colors.roots;
+    context.lineWidth = 2;
+    context.stroke();
+
+    // Sparkle effect on vine (like cell edges)
+    const sparkleOrder = [0, 2, 1, 3]; // Order of sparkling
+    const sparkleIndex = sparkleOrder.indexOf(index);
+    const phase = this._animationTime * 2.5 + (sparkleIndex * Math.PI / 2);
+    const brightness = (Math.sin(phase) + 1) / 2;
+
+    if (brightness > 0.3) {
+      const alpha = (brightness - 0.3) / 0.7;
+      
+      // Sparkle along the vine
+      context.beginPath();
+      context.moveTo(startX, startY);
+      context.quadraticCurveTo(cp1X, cp1Y, midX, midY);
+      context.quadraticCurveTo(cp2X, cp2Y, endX, endY);
+      context.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.7})`;
+      context.lineWidth = 2;
+      context.stroke();
+    }
+
+    // Small sprout tip at end
+    context.beginPath();
+    context.arc(endX, endY, 2.5, 0, Math.PI * 2);
+    context.fillStyle = colors.sprout;
+    context.fill();
+  }
+
+  /**
+   * Render sparkling effect on hexagon edges
+   */
+  _renderHexagonSparkles(context, centerX, centerY, radius) {
+    // Get hexagon vertices
+    const vertices = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI / 3) * i - Math.PI / 2;
+      vertices.push({
+        x: centerX + radius * Math.cos(angle),
+        y: centerY + radius * Math.sin(angle),
+      });
+    }
+
+    // Edge order: 2,4,1,5,6,3 (1-indexed) -> [1,3,0,4,5,2] (0-indexed)
+    const edgeOrder = [1, 3, 0, 4, 5, 2];
+
+    for (let i = 0; i < 6; i++) {
+      const edgeIndex = edgeOrder[i];
+      const startVertex = vertices[edgeIndex];
+      const endVertex = vertices[(edgeIndex + 1) % 6];
+
+      // Each edge has different phase based on order
+      const phase = this._animationTime * 2.5 + (i * Math.PI / 3);
+      const brightness = (Math.sin(phase) + 1) / 2; // 0 to 1
+
+      if (brightness > 0.3) {
+        const alpha = (brightness - 0.3) / 0.7; // Normalize to 0-1
+
+        // Draw sparkling edge
+        context.beginPath();
+        context.moveTo(startVertex.x, startVertex.y);
+        context.lineTo(endVertex.x, endVertex.y);
+        context.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.9})`;
+        context.lineWidth = 2;
+        context.lineCap = 'round';
+        context.stroke();
+      }
+    }
   }
 
   /**

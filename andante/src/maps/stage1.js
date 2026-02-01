@@ -27,7 +27,7 @@ export const stage1 = {
   boundary: {
     left: BOUNDARY_TYPE.BLOCK,
     right: BOUNDARY_TYPE.BLOCK, // Can exit to next stage
-    top: BOUNDARY_TYPE.BLOCK,
+    top: BOUNDARY_TYPE.NONE,
     bottom: BOUNDARY_TYPE.RESPAWN,
   },
 
@@ -44,6 +44,20 @@ export const stage1 = {
     smoothing: 0.92,
     offsetX: 0,
     offsetY: -50,
+  },
+
+  // Background settings - peaceful green meadow
+  background: {
+    sky: 'day',
+    autoGenerate: {
+      mountains: 3,
+      trees: 10,
+      bushes: 8,
+      grass: 25,
+      flowers: 15,
+      butterflies: 5,
+      particles: 10,
+    },
   },
 
   // Platform data
@@ -88,6 +102,10 @@ export const stage1 = {
     // Goal approach - jump to reach
     { type: 'cell', x: 430, y: -150 },  // Jump before goal platform
     { type: 'cell', x: 530, y: -150 },  // Above goal, jump to get
+
+    // Seeds - special collectibles
+    { type: 'seed', x: -250, y: -50 },  // Above starting block (jump to get)
+    { type: 'seed', x: 200, y: -250 },  // High path reward
   ],
 
   // Stage exit zones

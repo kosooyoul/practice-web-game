@@ -46,6 +46,19 @@ export const stageLoop = {
     offsetY: -50,
   },
 
+  // Background settings - mystical infinite night
+  background: {
+    sky: 'night',
+    autoGenerate: {
+      mountains: 3,
+      trees: 8,
+      bushes: 5,
+      grass: 20,
+      fog: 5,
+      particles: 30,
+    },
+  },
+
   // Platform data - designed for seamless loop
   platforms: [
     // Ground level platforms (spread across the map)
