@@ -44,6 +44,15 @@ export class Entity {
   }
 
   /**
+   * Get interpolated position for smooth rendering
+   * @param {number} alpha - Interpolation factor (0-1)
+   * @returns {{ x: number, y: number }}
+   */
+  getInterpolatedPosition(alpha = 1) {
+    return this._body.getInterpolatedPosition(alpha);
+  }
+
+  /**
    * Update entity (called every frame)
    * @param {Object} status - Game status
    */

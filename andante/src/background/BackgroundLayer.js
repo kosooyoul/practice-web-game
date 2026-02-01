@@ -345,9 +345,11 @@ export class BackgroundLayer {
 
   /**
    * Update animated elements
+   * @param {number} deltaTime - Delta time in seconds
    */
-  update() {
-    this._time += 1;
+  update(deltaTime = 1/60) {
+    // Accumulate time in seconds, normalized to 60fps equivalent
+    this._time += deltaTime * 60;
 
     // Update effects layer animations
     for (const elem of this._elements.effects) {

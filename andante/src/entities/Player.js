@@ -57,9 +57,69 @@ export class Player extends Entity {
   /**
    * Render player with animated character
    * @param {CanvasRenderingContext2D} context
-   * @param {Object} _status
+   * @param {Object} status - includes interpolation
    */
-  render(context, _status) {
-    this._characterRenderer.render(context, this.x, this.y, this.width, this.height);
+  render(context, status) {
+    // Use interpolated position for smooth rendering at high FPS
+    const alpha = status?.interpolation ?? 1;
+    const { x, y } = this.getInterpolatedPosition(alpha);
+    this._characterRenderer.render(context, x, y, this.width, this.height);
+
+    // Render flap gauge below player
+    this._renderFlapGauge(context, x, y);
+  }
+
+  /**
+   * Render flap/jump gauge below player
+   * @param {CanvasRenderingContext2D} context
+   * @param {number} x - Player X position
+   * @param {number} y - Player Y position (bottom)
+   */
+  _renderFlapGauge(context, x, y) {
+    const physics = this._body.physics;
+    const maxFlaps = physics.flappable;
+    const usedFlaps = physics.flapped;
+    const remainingFlaps = maxFlaps - usedFlaps;
+
+    // Gauge config
+    const gaugeWidth = this.width + 10;
+    const gaugeHeight = 4;
+    const gaugePadding = 8;
+    const gaugeX = x + this.width / 2 - gaugeWidth / 2;
+    const gaugeY = y + gaugePadding;
+
+    // Background bar
+    context.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    context.beginPath();
+    context.roundRect(gaugeX, gaugeY, gaugeWidth, gaugeHeight, 2);
+    context.fill();
+
+    // Filled portion (remaining flaps)
+    const fillRatio = remainingFlaps / maxFlaps;
+    const fillWidth = gaugeWidth * fillRatio;
+
+    if (fillWidth > 0) {
+      // Color based on remaining flaps
+      let fillColor;
+      if (fillRatio > 0.5) {
+        fillColor = 'rgba(100, 200, 100, 0.9)'; // Green
+      } else if (fillRatio > 0.2) {
+        fillColor = 'rgba(230, 180, 80, 0.9)'; // Yellow/Orange
+      } else {
+        fillColor = 'rgba(220, 80, 80, 0.9)'; // Red
+      }
+
+      context.fillStyle = fillColor;
+      context.beginPath();
+      context.roundRect(gaugeX, gaugeY, fillWidth, gaugeHeight, 2);
+      context.fill();
+    }
+
+    // Border
+    context.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    context.lineWidth = 0.5;
+    context.beginPath();
+    context.roundRect(gaugeX, gaugeY, gaugeWidth, gaugeHeight, 2);
+    context.stroke();
   }
 }

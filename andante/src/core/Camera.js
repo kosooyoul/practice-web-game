@@ -1,11 +1,13 @@
 /**
  * Camera - Camera system for following targets and viewport management
  */
-import { CAMERA } from '../config/constants.js';
+import { CAMERA, TIMING } from '../config/constants.js';
 
 export class Camera {
   _x = 0;
   _y = 0;
+  _prevX = 0;
+  _prevY = 0;
   _targetX = 0;
   _targetY = 0;
 
@@ -122,6 +124,10 @@ export class Camera {
     if (this._seamlessY && this._mapHeight > 0) {
       this._y = this._normalizePosition(this._y, this._bounds?.minY ?? 0, this._mapHeight);
     }
+
+    // Snap previous position too (no interpolation after snap)
+    this._prevX = this._x;
+    this._prevY = this._y;
   }
 
   /**
@@ -130,6 +136,8 @@ export class Camera {
    * @param {number} offsetY
    */
   adjustPosition(offsetX, offsetY) {
+    this._prevX = this._x;
+    this._prevY = this._y;
     this._x += offsetX;
     this._y += offsetY;
     this._targetX = this._x;
@@ -137,12 +145,20 @@ export class Camera {
   }
 
   /**
-   * Update camera position (called every frame)
+   * Update camera position (called every fixed timestep)
+   * @param {number} deltaTime - Delta time in seconds (optional, defaults to fixed timestep)
    */
-  update() {
+  update(deltaTime) {
     if (!this._target) {
       return;
     }
+
+    // Save previous position for interpolation
+    this._prevX = this._x;
+    this._prevY = this._y;
+
+    // Use fixed timestep if no deltaTime provided
+    const dt = deltaTime ?? (TIMING.FIXED_TIMESTEP / 1000);
 
     // Calculate target position
     this._targetX = this._getTargetCenterX();
@@ -161,9 +177,12 @@ export class Camera {
       deltaY = this._shortestDelta(deltaY, this._mapHeight);
     }
 
-    // Apply smoothing (lerp)
-    this._x += deltaX * (1 - this._smoothing);
-    this._y += deltaY * (1 - this._smoothing);
+    // Apply smoothing (lerp) - frame-rate independent
+    // Convert smoothing factor to work with deltaTime
+    // smoothingFactor = 1 - smoothing^(dt * 60) to normalize to 60fps
+    const smoothFactor = 1 - Math.pow(this._smoothing, dt * 60);
+    this._x += deltaX * smoothFactor;
+    this._y += deltaY * smoothFactor;
 
     // Normalize camera position for seamless loop
     if (this._seamlessX && this._mapWidth > 0) {
@@ -183,6 +202,42 @@ export class Camera {
         this._y = Math.max(this._bounds.minY, Math.min(this._bounds.maxY, this._y));
       }
     }
+  }
+
+  /**
+   * Get interpolated position for smooth rendering
+   * @param {number} alpha - Interpolation factor (0-1)
+   * @returns {{ x: number, y: number }}
+   */
+  getInterpolatedPosition(alpha) {
+    let interpX = this._prevX + (this._x - this._prevX) * alpha;
+    let interpY = this._prevY + (this._y - this._prevY) * alpha;
+
+    // Handle seamless loop wraparound for interpolation
+    if (this._seamlessX && this._mapWidth > 0) {
+      const deltaX = this._x - this._prevX;
+      if (Math.abs(deltaX) > this._mapWidth / 2) {
+        // Crossed boundary, don't interpolate
+        interpX = this._x;
+      }
+    }
+
+    if (this._seamlessY && this._mapHeight > 0) {
+      const deltaY = this._y - this._prevY;
+      if (Math.abs(deltaY) > this._mapHeight / 2) {
+        interpY = this._y;
+      }
+    }
+
+    return { x: interpX, y: interpY };
+  }
+
+  /**
+   * Snap previous position to current (use after teleport/respawn)
+   */
+  snapPreviousPosition() {
+    this._prevX = this._x;
+    this._prevY = this._y;
   }
 
   /**
@@ -222,8 +277,18 @@ export class Camera {
    * Apply camera transform to canvas context
    * @param {CanvasRenderingContext2D} context
    */
-  applyTransform(context) {
-    context.translate(-this._x, -this._y);
+  /**
+   * Apply camera transform to canvas context
+   * @param {CanvasRenderingContext2D} context
+   * @param {number} interpolation - Optional interpolation factor (0-1) for smooth rendering
+   */
+  applyTransform(context, interpolation = 1) {
+    if (interpolation < 1) {
+      const { x, y } = this.getInterpolatedPosition(interpolation);
+      context.translate(-x, -y);
+    } else {
+      context.translate(-this._x, -this._y);
+    }
   }
 
   /**

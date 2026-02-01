@@ -27,11 +27,7 @@ export class GameScene {
 
   // Player stats
   _cellCount = 0;
-
-  // FPS tracking
-  _lastFrameTime = 0;
-  _frameCount = 0;
-  _fps = 0;
+  _seedCount = 0;
 
   // Current map data cache
   _mapBounds = null;
@@ -328,6 +324,9 @@ export class GameScene {
     playerBody.physics.flapped = 0;
     playerBody.physics.leftJumpingPower = 0;
 
+    // Snap previous position to prevent interpolation glitches after teleport
+    playerBody.snapPreviousPosition();
+
     this._lockedJumpAt = Date.now();
 
     // Snap camera to new player position
@@ -394,11 +393,11 @@ export class GameScene {
     // Update items and check collection
     this._updateItems(status);
 
-    // Update background animations
-    this._backgroundLayer.update();
+    // Update background animations (pass deltaTime)
+    this._backgroundLayer.update(status.deltaTime);
 
-    // Update camera to follow player
-    this._camera.update();
+    // Update camera to follow player (pass deltaTime)
+    this._camera.update(status.deltaTime);
   }
 
   /**
@@ -429,10 +428,13 @@ export class GameScene {
   _applyItemEffect(effect) {
     switch (effect.type) {
       case 'currency':
-        // Handle currency items (cell, gem, etc.)
+        // Handle currency items (cell, seed, etc.)
         if (effect.key === 'cell') {
           this._cellCount += effect.value;
           console.log(`[GameScene] Cell collected! Total: ${this._cellCount}`);
+        } else if (effect.key === 'seed') {
+          this._seedCount += effect.value;
+          console.log(`[GameScene] Seed collected! Total: ${this._seedCount}`);
         }
         // Add more currency types here as needed
         break;
@@ -676,6 +678,9 @@ export class GameScene {
     playerBody.physics.flapped = 0;
     playerBody.physics.leftJumpingPower = 0;
 
+    // Snap previous position to prevent interpolation glitches after teleport
+    playerBody.snapPreviousPosition();
+
     this._lockedJumpAt = Date.now();
     this._camera.snapToTarget();
   }
@@ -743,8 +748,9 @@ export class GameScene {
       // Render map foreground during slide
       this._backgroundLayer.renderMapForeground(context, status);
     } else {
-      // Normal rendering
-      this._camera.applyTransform(context);
+      // Normal rendering with interpolation for smooth high-FPS
+      const interpolation = status.interpolation ?? 1;
+      this._camera.applyTransform(context, interpolation);
 
       // Check for seamless loop
       const seamlessX = this._mapBounds.LEFT === BOUNDARY_TYPE.SEAMLESS || 
@@ -866,8 +872,9 @@ export class GameScene {
    * @param {number} mapHeight
    */
   _renderPlayerGhosts(context, status, seamlessX, seamlessY, mapWidth, mapHeight) {
-    const playerX = this._player.x;
-    const playerY = this._player.y;
+    // Use interpolated position for smooth ghost rendering
+    const alpha = status?.interpolation ?? 1;
+    const { x: playerX, y: playerY } = this._player.getInterpolatedPosition(alpha);
     const edgeThreshold = 100; // How close to edge to show ghost
 
     // Check if player is near edge and render ghosts
@@ -1104,34 +1111,114 @@ export class GameScene {
       boundary.top + 24
     );
 
-    // FPS display
-    this._updateFPS();
-    context.fillStyle = this._fps < 30 ? '#FF0000' : this._fps < 50 ? '#FFAA00' : '#00AA00';
+    // FPS display (from GameLoop)
+    const fps = status.fps || 0;
+    context.fillStyle = fps < 30 ? '#FF0000' : fps < 50 ? '#FFAA00' : '#00AA00';
     context.fillText(
-      `FPS: ${this._fps}`,
+      `FPS: ${fps}`,
       boundary.left + 10,
       boundary.top + 38
     );
 
-    // Cell count display (top right)
-    context.font = 'bold 18px sans-serif';
-    context.fillStyle = '#DAA520';
-    context.textAlign = 'right';
-    context.textBaseline = 'top';
-    context.fillText(`Cell: ${this._cellCount}`, boundary.right - 20, boundary.top + 15);
+    // Item count display (top right) - with icons
+    this._renderItemUI(context, boundary);
   }
 
   /**
-   * Update FPS counter
+   * Render inventory bar at bottom
+   * @param {CanvasRenderingContext2D} context
+   * @param {Object} boundary
    */
-  _updateFPS() {
-    const now = performance.now();
-    this._frameCount++;
+  _renderItemUI(context, boundary) {
+    // Increment animation time for icon effects
+    this._uiAnimationTime = (this._uiAnimationTime || 0) + 0.016;
 
-    if (now - this._lastFrameTime >= 1000) {
-      this._fps = this._frameCount;
-      this._frameCount = 0;
-      this._lastFrameTime = now;
-    }
+    // Inventory config
+    const slotSize = 40;
+    const slotGap = 8;
+    const slotPadding = 6;
+    const cornerRadius = 6;
+
+    // Items to display in inventory
+    const items = [
+      { type: 'cell', count: this._cellCount, color: '#3C8CDC' },
+      { type: 'seed', count: this._seedCount, color: '#8B6914' },
+    ];
+
+    // Calculate total width
+    const totalWidth = items.length * slotSize + (items.length - 1) * slotGap;
+    const startX = -totalWidth / 2;
+    const bottomY = boundary.bottom - 60;
+
+    // Draw inventory background bar
+    context.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    this._roundRect(
+      context,
+      startX - slotPadding,
+      bottomY - slotPadding,
+      totalWidth + slotPadding * 2,
+      slotSize + slotPadding * 2,
+      cornerRadius + 2
+    );
+    context.fill();
+
+    // Draw each slot
+    items.forEach((item, index) => {
+      const slotX = startX + index * (slotSize + slotGap);
+      const slotY = bottomY;
+
+      // Slot background
+      context.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      this._roundRect(context, slotX, slotY, slotSize, slotSize, cornerRadius);
+      context.fill();
+
+      // Slot border
+      context.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      context.lineWidth = 1;
+      this._roundRect(context, slotX, slotY, slotSize, slotSize, cornerRadius);
+      context.stroke();
+
+      // Item icon (centered in slot)
+      const iconCenterX = slotX + slotSize / 2;
+      const iconCenterY = slotY + slotSize / 2 - 2;
+      Item.renderIcon(context, item.type, iconCenterX, iconCenterY, 0.8, this._uiAnimationTime);
+
+      // Count badge (bottom right corner)
+      if (item.count > 0) {
+        const badgeX = slotX + slotSize - 4;
+        const badgeY = slotY + slotSize - 4;
+
+        // Badge background
+        context.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        context.beginPath();
+        context.arc(badgeX, badgeY, 9, 0, Math.PI * 2);
+        context.fill();
+
+        // Count text
+        context.font = 'bold 11px sans-serif';
+        context.fillStyle = '#FFFFFF';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(`${item.count}`, badgeX, badgeY);
+      }
+    });
   }
+
+  /**
+   * Draw rounded rectangle path
+   */
+  _roundRect(context, x, y, width, height, radius) {
+    context.beginPath();
+    context.moveTo(x + radius, y);
+    context.lineTo(x + width - radius, y);
+    context.quadraticCurveTo(x + width, y, x + width, y + radius);
+    context.lineTo(x + width, y + height - radius);
+    context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    context.lineTo(x + radius, y + height);
+    context.quadraticCurveTo(x, y + height, x, y + height - radius);
+    context.lineTo(x, y + radius);
+    context.quadraticCurveTo(x, y, x + radius, y);
+    context.closePath();
+  }
+
 }

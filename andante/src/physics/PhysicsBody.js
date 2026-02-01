@@ -10,6 +10,10 @@ export class PhysicsBody {
   width = 0;
   height = 0;
 
+  // Previous position (for interpolation)
+  _prevX = 0;
+  _prevY = 0;
+
   // Bounding box
   left = 0;
   right = 0;
@@ -60,6 +64,8 @@ export class PhysicsBody {
   constructor(x, y, width, height, physicsOverrides = {}) {
     this.x = x;
     this.y = y;
+    this._prevX = x;
+    this._prevY = y;
     this.width = width;
     this.height = height;
 
@@ -117,6 +123,10 @@ export class PhysicsBody {
    * Apply pending position changes
    */
   applyMove() {
+    // Save previous position for interpolation
+    this._prevX = this.x;
+    this._prevY = this.y;
+
     this.x = this._to.x ?? this.x;
     this.y = this._to.y ?? this.y;
     this.width = this._to.width ?? this.width;
@@ -124,6 +134,26 @@ export class PhysicsBody {
 
     this._updateBoundingBox();
     this._clearPendingMove();
+  }
+
+  /**
+   * Get interpolated position for smooth rendering
+   * @param {number} alpha - Interpolation factor (0-1)
+   * @returns {{ x: number, y: number }}
+   */
+  getInterpolatedPosition(alpha) {
+    return {
+      x: this._prevX + (this.x - this._prevX) * alpha,
+      y: this._prevY + (this.y - this._prevY) * alpha,
+    };
+  }
+
+  /**
+   * Snap previous position to current (use after teleport/respawn)
+   */
+  snapPreviousPosition() {
+    this._prevX = this.x;
+    this._prevY = this.y;
   }
 
   /**
@@ -137,6 +167,7 @@ export class PhysicsBody {
       0
     );
     this.physics.jumpedAt = null;
+    this.physics.flapped = 0; // Reset flap count on landing
   }
 
   /**
@@ -150,6 +181,7 @@ export class PhysicsBody {
       0
     );
     this.physics.jumpedAt = null;
+    this.physics.flapped = 0; // Reset flap count on landing
   }
 
   /**

@@ -85,16 +85,17 @@ export class Item extends Entity {
 
   /**
    * Update animation
-   * @param {Object} status
+   * @param {Object} status - includes deltaTime
    */
   update(status) {
     if (this._collected || !this._typeData) {
       return;
     }
 
-    // Floating animation
+    // Floating animation (deltaTime-based, normalized to 60fps)
     if (this._typeData.render?.float) {
-      this._animationTime += 0.05;
+      const deltaTime = status?.deltaTime ?? (1/60);
+      this._animationTime += 0.05 * deltaTime * 60;
       this._floatOffset = Math.sin(this._animationTime) * 3;
     }
   }
@@ -501,5 +502,69 @@ export class Item extends Entity {
     context.strokeStyle = colors.secondary;
     context.lineWidth = 1.5;
     context.stroke();
+  }
+
+  // Cache for UI icon instances
+  static _iconCache = {};
+
+  /**
+   * Static method to render item icon for UI
+   * Uses actual Item instance to ensure identical rendering
+   * @param {CanvasRenderingContext2D} context
+   * @param {string} type - Item type key
+   * @param {number} x - Center X position
+   * @param {number} y - Center Y position
+   * @param {number} scale - Scale factor (default 1.0)
+   * @param {number} animationTime - Animation time for effects (optional)
+   */
+  static renderIcon(context, type, x, y, scale = 1.0, animationTime = 0) {
+    // Get or create cached item instance
+    if (!Item._iconCache[type]) {
+      Item._iconCache[type] = new Item(type, 0, 0);
+    }
+
+    const item = Item._iconCache[type];
+    if (!item._typeData) {
+      return;
+    }
+
+    // Update animation time
+    item._animationTime = animationTime;
+
+    context.save();
+
+    // Translate to center position (item renders from bottom-left, so adjust)
+    const centerX = x - (item.width / 2) * scale;
+    const centerY = y + (item.height / 2) * scale;
+
+    context.translate(centerX, centerY);
+    context.scale(scale, scale);
+
+    // Render using the actual item render method (without collected check)
+    const { render } = item._typeData;
+    const itemCenterX = item.width / 2;
+    const itemCenterY = -item.height / 2;
+
+    switch (render.shape) {
+      case 'circle':
+        item._renderCircle(context, itemCenterX, itemCenterY, render);
+        break;
+      case 'hexagon':
+        item._renderHexagon(context, itemCenterX, itemCenterY, render);
+        break;
+      case 'potatoSeed':
+        item._renderPotatoSeed(context, itemCenterX, itemCenterY, render);
+        break;
+      case 'diamond':
+        item._renderDiamond(context, itemCenterX, itemCenterY, render);
+        break;
+      case 'heart':
+        item._renderHeart(context, itemCenterX, itemCenterY, render);
+        break;
+      default:
+        item._renderCircle(context, itemCenterX, itemCenterY, render);
+    }
+
+    context.restore();
   }
 }

@@ -2,6 +2,13 @@
  * Andante Game - Configuration Constants
  */
 
+// Game loop timing
+export const TIMING = {
+  FIXED_TIMESTEP: 1000 / 60,  // 16.67ms = 60 updates per second
+  MAX_DELTA: 250,              // Cap delta time to prevent spiral of death
+  MAX_UPDATES_PER_FRAME: 5,    // Prevent too many physics updates in one frame
+};
+
 // Default environment settings
 export const ENVIRONMENT = {
   GRAVITY: 1,

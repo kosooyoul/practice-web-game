@@ -64,23 +64,31 @@ export class Game {
   }
 
   /**
+   * Get current FPS from game loop
+   */
+  get fps() {
+    return this._gameLoop.fps;
+  }
+
+  /**
    * Setup game loop callbacks
    */
   _setupGameLoop() {
-    this._gameLoop.setOnUpdate((tick) => {
-      this._update(tick);
+    this._gameLoop.setOnUpdate((tick, deltaTime) => {
+      this._update(tick, deltaTime);
     });
 
-    this._gameLoop.setOnRender((tick) => {
-      this._render(tick);
+    this._gameLoop.setOnRender((tick, interpolation, deltaTime) => {
+      this._render(tick, interpolation, deltaTime);
     });
   }
 
   /**
-   * Update game state
+   * Update game state (called at fixed timestep)
    * @param {number} tick - Current tick count
+   * @param {number} deltaTime - Delta time in seconds (fixed)
    */
-  _update(tick) {
+  _update(tick, deltaTime) {
     // Update canvas dimensions
     this._canvas.updateDimensions();
 
@@ -90,6 +98,7 @@ export class Game {
     // Build status object
     const status = {
       tick,
+      deltaTime,
       boundary: this._canvas.boundary,
       input: this._inputManager.getStatus(),
     };
@@ -104,10 +113,12 @@ export class Game {
   }
 
   /**
-   * Render game
+   * Render game (called every frame)
    * @param {number} tick - Current tick count
+   * @param {number} interpolation - Interpolation factor (0-1)
+   * @param {number} deltaTime - Frame delta time in seconds
    */
-  _render(tick) {
+  _render(tick, interpolation, deltaTime) {
     const context = this._canvas.context;
 
     // Clear and setup transform
@@ -116,6 +127,9 @@ export class Game {
     // Build status object
     const status = {
       tick,
+      interpolation,
+      deltaTime,
+      fps: this._gameLoop.fps,
       boundary: this._canvas.boundary,
       input: this._inputManager.getStatus(),
     };
