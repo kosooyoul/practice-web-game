@@ -2,7 +2,7 @@
   "name": "Andante - Web Platform Game",
   "short_name": "Andante",
   "description": "Andante - A simple web platform game",
-  "start_url": "/",
+  "start_url": "/andante",
   "display": "standalone",
   "orientation": "landscape",
   "background_color": "#ffffff",
