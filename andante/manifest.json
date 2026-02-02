@@ -1,0 +1,26 @@
+{
+  "name": "Andante - Web Platform Game",
+  "short_name": "Andante",
+  "description": "Andante - A simple web platform game",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#ffffff",
+  "theme_color": "#4a90d9",
+  "icons": [
+    {
+      "src": "https://www.auoi.net/icons/ahyane-20y-m.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://www.auoi.net/icons/ahyane-20y-m.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "lang": "ko"
+}
