@@ -9,6 +9,9 @@ export const stage1 = {
   name: 'Green Hills',
   description: 'A peaceful starting area to learn the basics.',
 
+  // Background music
+  bgm: 'floatinggarden',
+
   // Player spawn point
   spawn: {
     x: -20,
@@ -106,6 +109,23 @@ export const stage1 = {
     // Seeds - special collectibles
     { type: 'seed', x: -250, y: -50 },  // Above starting block (jump to get)
     { type: 'seed', x: 200, y: -250 },  // High path reward
+    { type: 'seed', x: -350, y: 50 },   // Extra seed near start
+  ],
+
+  // Trigger zones - interactive areas for item combinations
+  triggers: [
+    {
+      // Potato vine growth trigger - beautiful growing vine background
+      x: 50,           // Near stepping stones
+      y: 100,
+      width: 60,
+      height: 80,
+      recipe: 'growVine',
+      result: {
+        scale: 1.5,
+        height: 250,
+      },
+    },
   ],
 
   // Stage exit zones

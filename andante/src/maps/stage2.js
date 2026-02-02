@@ -9,6 +9,9 @@ export const stage2 = {
   name: 'Sky Tower',
   description: 'Climb the tower to reach the top!',
 
+  // Background music (same as stage1 - no fade on transition)
+  bgm: 'floatinggarden',
+
   // Player spawn point
   spawn: {
     x: -150,
@@ -121,6 +124,22 @@ export const stage2 = {
     { type: 'seed', x: -150, y: -150 }, // Level 2 left platform
     { type: 'seed', x: 0, y: -350 },    // Mid tower challenge
     { type: 'seed', x: 50, y: -800 },   // Top reward
+  ],
+
+  // Trigger zones - interactive areas for item combinations
+  triggers: [
+    {
+      // Potato vine growth - a giant vine growing up the tower
+      x: -80,           // Position (on Level 3 platform)
+      y: -200,
+      width: 60,
+      height: 80,
+      recipe: 'growVine',
+      result: {
+        scale: 2.0,
+        height: 350,
+      },
+    },
   ],
 
   // Stage exit zones

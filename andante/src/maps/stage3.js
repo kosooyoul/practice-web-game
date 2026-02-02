@@ -9,6 +9,9 @@ export const stage3 = {
   name: 'Canyon Run',
   description: 'A wide area with many paths to explore.',
 
+  // Background music (same as other stages - no fade on transition)
+  bgm: 'floatinggarden',
+
   // Player spawn point
   spawn: {
     x: -700,

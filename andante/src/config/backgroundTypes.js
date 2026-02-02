@@ -139,6 +139,25 @@ export const BG_TYPES = {
     colors: ['#999999', '#888888'],
   },
 
+  // === SPECIAL - Growable Elements ===
+  potatoVine: {
+    layer: 'mid',
+    render: 'potatoVine',
+    width: 80,
+    height: 200,  // Can grow tall
+    colors: {
+      stem: '#6B8E23',         // Olive green stem
+      stemDark: '#556B2F',     // Darker stem
+      leaf: '#7CCD7C',         // Light green leaves
+      leafDark: '#4A7C4A',     // Dark green leaves
+      potato: '#D2B48C',       // Tan potato color
+      potatoDark: '#8B7355',   // Dark potato
+      flower: '#FFE4E1',       // Pale pink flowers
+    },
+    animated: true,
+    growable: true,  // Can be spawned by triggers
+  },
+
   // === EFFECTS LAYER - Animated Elements ===
   butterfly: {
     layer: 'effects',

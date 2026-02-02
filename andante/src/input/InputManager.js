@@ -8,12 +8,34 @@ export class InputManager {
   _joypad = null;
 
   _boundHandlers = {};
+  _hasInteracted = false;
+  _onFirstInteraction = null;
 
   constructor(canvas) {
     this._canvas = canvas;
     this._joypad = new Joypad();
 
     this._setupEventListeners();
+  }
+
+  /**
+   * Set callback for first user interaction
+   * @param {Function} callback
+   */
+  setOnFirstInteraction(callback) {
+    this._onFirstInteraction = callback;
+    // If already interacted, call immediately
+    if (this._hasInteracted && callback) {
+      callback();
+    }
+  }
+
+  /**
+   * Check if user has interacted
+   * @returns {boolean}
+   */
+  get hasInteracted() {
+    return this._hasInteracted;
   }
 
   /**
@@ -47,6 +69,14 @@ export class InputManager {
    */
   render(context, status) {
     this._joypad.render(context, status);
+  }
+
+  /**
+   * Set whether to show the interact (B) button
+   * @param {boolean} show
+   */
+  setShowInteractButton(show) {
+    this._joypad.setShowInteractButton(show);
   }
 
   /**
@@ -133,6 +163,9 @@ export class InputManager {
       evt.preventDefault(); // Prevent double-tap zoom on mobile
     }
 
+    // Track first interaction for audio autoplay
+    this._triggerFirstInteraction();
+
     const pointers = this._getPointers(evt);
     this._joypad.handlePointersDown(pointers);
   }
@@ -160,7 +193,24 @@ export class InputManager {
    * @param {KeyboardEvent} evt
    */
   _handleKeyDown(evt) {
+    // Track first interaction for audio autoplay
+    this._triggerFirstInteraction();
+
     this._joypad.handleKeyDown(evt.which || evt.keyCode);
+  }
+
+  /**
+   * Trigger first interaction callback (for audio autoplay)
+   */
+  _triggerFirstInteraction() {
+    if (this._hasInteracted) {
+      return;
+    }
+
+    this._hasInteracted = true;
+    if (this._onFirstInteraction) {
+      this._onFirstInteraction();
+    }
   }
 
   /**

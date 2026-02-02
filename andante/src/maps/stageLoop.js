@@ -9,6 +9,9 @@ export const stageLoop = {
   name: 'Infinite Loop',
   description: 'A seamless looping world - walk forever!',
 
+  // Background music
+  bgm: 'floatinggarden',
+
   // Player spawn point
   spawn: {
     x: 0,

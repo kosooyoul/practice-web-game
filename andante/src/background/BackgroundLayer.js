@@ -46,6 +46,9 @@ export class BackgroundLayer {
   _random = Math.random;  // Random function (seeded or not)
   _seamlessX = false;
   _seamlessY = false;
+  
+  // Growing elements (spawned by triggers)
+  _growingElements = [];
 
   /**
    * Initialize background from map data
@@ -62,6 +65,7 @@ export class BackgroundLayer {
     this._platforms = platforms;
     this._groundY = groundY;
     this._elements = { far: [], mid: [], near: [], effects: [] };
+    this._growingElements = [];
     this._time = 0;
     this._seamlessX = seamlessX;
     this._seamlessY = seamlessY;
@@ -376,6 +380,63 @@ export class BackgroundLayer {
         }
       }
     }
+
+    // Update growing elements
+    for (let i = this._growingElements.length - 1; i >= 0; i--) {
+      const elem = this._growingElements[i];
+      
+      // Grow animation (0 -> 1 over duration)
+      elem.growProgress = Math.min(elem.growProgress + deltaTime / elem.growDuration, 1);
+      
+      // Update current scale based on growth
+      elem.currentScale = elem.growProgress;
+      
+      // When fully grown, move to regular elements
+      if (elem.growProgress >= 1) {
+        elem.growing = false;
+        this._growingElements.splice(i, 1);
+        // Element stays in its layer for normal rendering
+      }
+    }
+  }
+
+  /**
+   * Add a growing background element (triggered by game events)
+   * @param {string} type - Element type (e.g., 'potatoVine')
+   * @param {number} x - X position
+   * @param {number} y - Y position (base/ground)
+   * @param {Object} options - { scale, growDuration }
+   */
+  addGrowingElement(type, x, y, options = {}) {
+    const typeData = getBgType(type);
+    if (!typeData) {
+      console.warn(`[BackgroundLayer] Unknown type: ${type}`);
+      return;
+    }
+
+    const elem = {
+      type,
+      typeData,
+      x,
+      y,
+      baseX: x,
+      baseY: y,
+      scale: options.scale || 1,
+      phase: Math.random() * Math.PI * 2,
+      // Growing properties
+      growing: true,
+      growProgress: 0,
+      growDuration: options.growDuration || 2,  // seconds
+      currentScale: 0,
+      targetHeight: options.height || typeData.height,
+    };
+
+    // Add to layer
+    const layer = typeData.layer || 'mid';
+    this._elements[layer].push(elem);
+    this._growingElements.push(elem);
+
+    console.log(`[BackgroundLayer] Added growing ${type} at (${x}, ${y})`);
   }
 
   /**
@@ -567,12 +628,17 @@ export class BackgroundLayer {
    */
   _renderElement(context, elem, x, y) {
     const { typeData, scale } = elem;
-    const width = typeData.width * scale;
-    const height = typeData.height * scale;
+
+    // For growing elements, apply growth scale
+    const growScale = elem.growing ? elem.currentScale : 1;
+    const finalScale = scale * growScale;
+
+    // Skip if not visible yet
+    if (finalScale <= 0.01) return;
 
     context.save();
     context.translate(x, y);
-    context.scale(scale, scale);
+    context.scale(finalScale, finalScale);
 
     switch (typeData.render) {
       case 'mountain':
@@ -614,6 +680,9 @@ export class BackgroundLayer {
         break;
       case 'particle':
         this._drawParticle(context, typeData, elem);
+        break;
+      case 'potatoVine':
+        this._drawPotatoVine(context, typeData, elem);
         break;
     }
 
@@ -887,6 +956,176 @@ export class BackgroundLayer {
     context.fillStyle = gradient;
     context.fill();
     context.globalAlpha = 1;
+  }
+
+  /**
+   * Draw potato vine (growing from ground upward)
+   */
+  _drawPotatoVine(context, typeData, elem) {
+    const { width, height, colors } = typeData;
+    const sway = Math.sin(this._time * 0.015 + elem.phase) * 3;
+
+    // Main stem (grows from ground upward)
+    const stemPoints = this._generateVineStem(height, sway, elem.phase);
+    
+    // Draw main stem
+    context.beginPath();
+    context.moveTo(stemPoints[0].x, stemPoints[0].y);
+    for (let i = 1; i < stemPoints.length; i++) {
+      const p = stemPoints[i];
+      context.lineTo(p.x, p.y);
+    }
+    context.strokeStyle = colors.stem;
+    context.lineWidth = 6;
+    context.lineCap = 'round';
+    context.stroke();
+
+    // Inner stem highlight
+    context.beginPath();
+    context.moveTo(stemPoints[0].x - 1, stemPoints[0].y);
+    for (let i = 1; i < stemPoints.length; i++) {
+      const p = stemPoints[i];
+      context.lineTo(p.x - 1, p.y);
+    }
+    context.strokeStyle = colors.stemDark;
+    context.lineWidth = 3;
+    context.stroke();
+
+    // Draw leaves along the stem
+    for (let i = 2; i < stemPoints.length - 1; i += 2) {
+      const p = stemPoints[i];
+      const side = (i % 4 === 0) ? 1 : -1;
+      this._drawPotatoLeaf(context, p.x, p.y, side, colors, elem.phase + i);
+    }
+
+    // Draw potatoes at base
+    this._drawPotatoes(context, 0, 0, colors, elem.phase);
+
+    // Draw flowers at top
+    if (stemPoints.length > 3) {
+      const top = stemPoints[stemPoints.length - 1];
+      this._drawPotatoFlowers(context, top.x, top.y, colors, elem.phase);
+    }
+  }
+
+  /**
+   * Generate vine stem points with natural curve
+   */
+  _generateVineStem(height, sway, phase) {
+    const points = [];
+    const segments = 8;
+    
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments;
+      const y = -height * t;
+      // Natural wave pattern
+      const x = Math.sin(t * Math.PI * 2 + phase) * 15 * t + sway * t;
+      points.push({ x, y });
+    }
+    
+    return points;
+  }
+
+  /**
+   * Draw a potato leaf
+   */
+  _drawPotatoLeaf(context, x, y, side, colors, phase) {
+    const leafSize = 20 + Math.sin(phase) * 5;
+    const leafAngle = side * 0.4 + Math.sin(this._time * 0.02 + phase) * 0.1;
+    
+    context.save();
+    context.translate(x, y);
+    context.rotate(leafAngle);
+
+    // Leaf shape (heart-like potato leaf)
+    context.beginPath();
+    context.moveTo(0, 0);
+    context.bezierCurveTo(
+      side * leafSize * 0.5, -leafSize * 0.3,
+      side * leafSize, -leafSize * 0.2,
+      side * leafSize * 0.8, leafSize * 0.3
+    );
+    context.bezierCurveTo(
+      side * leafSize * 0.4, leafSize * 0.5,
+      0, leafSize * 0.3,
+      0, 0
+    );
+    context.fillStyle = colors.leaf;
+    context.fill();
+
+    // Leaf vein
+    context.beginPath();
+    context.moveTo(0, 0);
+    context.quadraticCurveTo(side * leafSize * 0.3, 0, side * leafSize * 0.5, leafSize * 0.1);
+    context.strokeStyle = colors.leafDark;
+    context.lineWidth = 1;
+    context.stroke();
+
+    context.restore();
+  }
+
+  /**
+   * Draw potatoes at vine base
+   */
+  _drawPotatoes(context, x, y, colors, phase) {
+    const potatoes = [
+      { ox: -15, oy: 5, size: 18 },
+      { ox: 10, oy: 8, size: 14 },
+      { ox: -5, oy: 15, size: 12 },
+    ];
+
+    for (const p of potatoes) {
+      // Potato shape (irregular ellipse)
+      context.beginPath();
+      context.ellipse(
+        x + p.ox, y + p.oy,
+        p.size, p.size * 0.7,
+        Math.sin(phase + p.ox) * 0.3, 0, Math.PI * 2
+      );
+      context.fillStyle = colors.potato;
+      context.fill();
+
+      // Potato spots/eyes
+      context.beginPath();
+      context.arc(x + p.ox - 3, y + p.oy - 2, 2, 0, Math.PI * 2);
+      context.arc(x + p.ox + 4, y + p.oy + 1, 1.5, 0, Math.PI * 2);
+      context.fillStyle = colors.potatoDark;
+      context.fill();
+    }
+  }
+
+  /**
+   * Draw small flowers at vine top
+   */
+  _drawPotatoFlowers(context, x, y, colors, phase) {
+    const flowers = [
+      { ox: 0, oy: -5 },
+      { ox: -8, oy: 3 },
+      { ox: 8, oy: 0 },
+    ];
+
+    for (const f of flowers) {
+      const fx = x + f.ox;
+      const fy = y + f.oy;
+      
+      // Petals
+      for (let i = 0; i < 5; i++) {
+        const angle = (i / 5) * Math.PI * 2 + phase;
+        const px = fx + Math.cos(angle) * 5;
+        const py = fy + Math.sin(angle) * 5;
+        
+        context.beginPath();
+        context.ellipse(px, py, 4, 3, angle, 0, Math.PI * 2);
+        context.fillStyle = colors.flower;
+        context.fill();
+      }
+      
+      // Center
+      context.beginPath();
+      context.arc(fx, fy, 3, 0, Math.PI * 2);
+      context.fillStyle = '#FFE135';
+      context.fill();
+    }
   }
 
   _drawParticle(context, typeData, elem) {

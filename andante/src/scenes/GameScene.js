@@ -4,11 +4,13 @@
 import { Camera } from '../core/Camera.js';
 import { MapLoader } from '../core/MapLoader.js';
 import { TransitionManager, TRANSITION_TYPE } from '../core/TransitionManager.js';
+import { getBGMManager } from '../core/BGMManager.js';
 import { PhysicsWorld } from '../physics/PhysicsWorld.js';
 import { detectGroundCollision, detectBoxCollision, CollisionSide } from '../physics/Collision.js';
 import { Player } from '../entities/Player.js';
 import { Platform } from '../entities/Platform.js';
 import { Item } from '../entities/Item.js';
+import { TriggerZone, TRIGGER_STATE } from '../entities/TriggerZone.js';
 import { BackgroundLayer } from '../background/BackgroundLayer.js';
 import { BOUNDARY_TYPE } from '../config/constants.js';
 import { getMap } from '../maps/index.js';
@@ -23,11 +25,19 @@ export class GameScene {
   _player = null;
   _platforms = [];
   _items = [];
+  _triggerZones = [];
   _lockedJumpAt = null;
 
-  // Player stats
-  _cellCount = 0;
-  _seedCount = 0;
+  // Player stats (inventory)
+  _inventory = {
+    cell: 0,
+    seed: 0,
+  };
+
+  // Trigger system state
+  _activeTrigger = null;         // Currently active trigger zone
+  _growingPlatforms = [];        // Platforms being animated (vine grow, etc.)
+  _triggerActionPending = false; // Waiting for action key release
 
   // Current map data cache
   _mapBounds = null;
@@ -39,10 +49,16 @@ export class GameScene {
   _nextMapData = null;
   _nextPlatforms = [];
 
+  // BGM state
+  _bgmManager = null;
+  _pendingBgmId = null;         // BGM to play after transition
+  _bgmFadingForTransition = false;
+
   constructor() {
     this._camera = new Camera();
     this._mapLoader = new MapLoader();
     this._transitionManager = new TransitionManager();
+    this._bgmManager = getBGMManager();
     this._physicsWorld = new PhysicsWorld();
     this._backgroundLayer = new BackgroundLayer();
     this._player = new Player();
@@ -61,7 +77,7 @@ export class GameScene {
   }
 
   get cellCount() {
-    return this._cellCount;
+    return this._inventory.cell;
   }
 
   /**
@@ -71,11 +87,24 @@ export class GameScene {
   setGame(game) {
     this._game = game;
 
-    // Load first stage
+    // Load first stage (BGM will be queued but not play until interaction)
     this.loadStage('stage1');
 
     // Set camera to follow player
     this._camera.setTarget(this._player);
+
+    // Setup first interaction callback to start BGM
+    // Browser requires user interaction before playing audio
+    if (game.input) {
+      game.input.setOnFirstInteraction(() => {
+        this._bgmManager.init();
+        // Restart BGM if it was queued during stage load
+        const currentMap = this._mapLoader.currentMap;
+        if (currentMap?.bgm && !this._bgmManager.isPlaying) {
+          this._bgmManager.play(currentMap.bgm, { fadeIn: true, fadeDuration: 500 });
+        }
+      });
+    }
   }
 
   /**
@@ -102,6 +131,10 @@ export class GameScene {
 
     // Create items from map data
     this._items = this._createItemsFromMapData(mapData);
+
+    // Create trigger zones from map data
+    this._triggerZones = this._createTriggerZonesFromMapData(mapData);
+    this._growingPlatforms = [];
 
     // Check seamless settings
     const seamlessX = this._mapBounds.LEFT === BOUNDARY_TYPE.SEAMLESS || 
@@ -140,6 +173,11 @@ export class GameScene {
     // Spawn player at map spawn point
     this._spawnPlayer();
 
+    // Start background music (with fade in for initial load)
+    if (mapData.bgm) {
+      this._bgmManager.play(mapData.bgm, { fadeIn: true, fadeDuration: 500 });
+    }
+
     console.log(`[GameScene] Stage loaded: ${mapData.name}`);
 
     return true;
@@ -167,6 +205,31 @@ export class GameScene {
     }
 
     return items;
+  }
+
+  /**
+   * Create trigger zones from map data
+   * @param {Object} mapData
+   * @returns {Array<TriggerZone>}
+   */
+  _createTriggerZonesFromMapData(mapData) {
+    const zones = [];
+
+    if (mapData.triggers) {
+      for (const triggerData of mapData.triggers) {
+        const zone = new TriggerZone(
+          triggerData.x,
+          triggerData.y,
+          triggerData.width,
+          triggerData.height,
+          triggerData.recipe,
+          triggerData.result
+        );
+        zones.push(zone);
+      }
+    }
+
+    return zones;
   }
 
   /**
@@ -338,6 +401,9 @@ export class GameScene {
    * @param {Object} status - Game status {tick, boundary, input}
    */
   update(status) {
+    // Update BGM fade animation
+    this._bgmManager.update();
+
     // Update transition if active
     if (this._transitionManager.isActive) {
       const state = this._transitionManager.state;
@@ -393,6 +459,12 @@ export class GameScene {
     // Update items and check collection
     this._updateItems(status);
 
+    // Update trigger zones
+    this._updateTriggerZones(status);
+
+    // Update growing platforms (vine animation)
+    this._updateGrowingPlatforms(status);
+
     // Update background animations (pass deltaTime)
     this._backgroundLayer.update(status.deltaTime);
 
@@ -429,14 +501,10 @@ export class GameScene {
     switch (effect.type) {
       case 'currency':
         // Handle currency items (cell, seed, etc.)
-        if (effect.key === 'cell') {
-          this._cellCount += effect.value;
-          console.log(`[GameScene] Cell collected! Total: ${this._cellCount}`);
-        } else if (effect.key === 'seed') {
-          this._seedCount += effect.value;
-          console.log(`[GameScene] Seed collected! Total: ${this._seedCount}`);
+        if (effect.key && this._inventory.hasOwnProperty(effect.key)) {
+          this._inventory[effect.key] += effect.value;
+          console.log(`[GameScene] ${effect.key} collected! Total: ${this._inventory[effect.key]}`);
         }
-        // Add more currency types here as needed
         break;
       case 'heal':
         // Future: health restoration
@@ -444,6 +512,158 @@ export class GameScene {
         break;
       default:
         console.warn(`[GameScene] Unknown item effect: ${effect.type}`);
+    }
+  }
+
+  /**
+   * Update trigger zones
+   * @param {Object} status
+   */
+  _updateTriggerZones(status) {
+    const { input } = status;
+    this._activeTrigger = null;
+
+    for (const trigger of this._triggerZones) {
+      // Update trigger animation
+      trigger.update(status);
+
+      // Check player overlap
+      if (trigger.checkPlayerInZone(this._player)) {
+        if (trigger.state === TRIGGER_STATE.ACTIVE) {
+          this._activeTrigger = trigger;
+        }
+      }
+
+      // Handle activation completion
+      if (trigger.state === TRIGGER_STATE.COMPLETED && trigger.resultData) {
+        this._executeTriggerResult(trigger);
+      }
+    }
+
+    // Handle interact key for trigger activation (B button / E key)
+    if (this._activeTrigger && input['interact']) {
+      if (!this._triggerActionPending) {
+        this._triggerActionPending = true;
+        
+        if (this._activeTrigger.canActivate(this._inventory)) {
+          console.log(`[GameScene] Activating trigger: ${this._activeTrigger.recipeId}`);
+          this._activeTrigger.activate(this._inventory);
+        }
+      }
+    } else {
+      this._triggerActionPending = false;
+    }
+
+    // Show/hide interact button based on active trigger
+    if (this._game && this._game.input) {
+      this._game.input.setShowInteractButton(this._activeTrigger !== null);
+    }
+  }
+
+  /**
+   * Execute trigger result (spawn platforms, background elements, etc.)
+   * @param {TriggerZone} trigger
+   */
+  _executeTriggerResult(trigger) {
+    const result = trigger.recipe?.result;
+    const data = trigger.resultData;
+
+    if (!result) {
+      return;
+    }
+
+    switch (result.type) {
+      case 'spawnBackground':
+        // Spawn background element (like potato vine)
+        const elementType = result.elementType || 'potatoVine';
+        const growDuration = result.growDuration || 2;
+        
+        // Spawn at trigger zone position
+        this._backgroundLayer.addGrowingElement(
+          elementType,
+          trigger.x + trigger.width / 2,  // Center of trigger zone
+          trigger.y,                       // Ground level
+          {
+            scale: data?.scale || 1.5,
+            growDuration: growDuration,
+            height: data?.height || 200,
+          }
+        );
+        console.log(`[GameScene] Growing ${elementType} from trigger`);
+        break;
+
+      case 'spawnPlatforms':
+        // Add platforms with grow animation
+        if (data?.platforms) {
+          for (const platData of data.platforms) {
+            const platform = new Platform(
+              platData.x,
+              platData.y,
+              platData.width,
+              platData.height
+            );
+            // Mark as growing (for animation)
+            platform._growing = true;
+            platform._growProgress = 0;
+            platform._growDirection = platData.growDirection || 'up';
+            platform._finalHeight = platData.height;
+            platform._finalY = platData.y;
+            
+            this._platforms.push(platform);
+            this._growingPlatforms.push(platform);
+          }
+          console.log(`[GameScene] Spawned ${data.platforms.length} platforms from trigger`);
+        }
+        break;
+
+      case 'removePlatforms':
+        // Remove platforms by ID
+        if (data?.platformIds) {
+          this._platforms = this._platforms.filter(
+            (p) => !data.platformIds.includes(p.id)
+          );
+        }
+        break;
+
+      default:
+        console.warn(`[GameScene] Unknown trigger result type: ${result.type}`);
+    }
+
+    // Clear result data to prevent re-execution
+    trigger._resultData = null;
+  }
+
+  /**
+   * Update growing platforms (vine animation)
+   * @param {Object} status
+   */
+  _updateGrowingPlatforms(status) {
+    const deltaTime = status?.deltaTime ?? (1/60);
+
+    for (let i = this._growingPlatforms.length - 1; i >= 0; i--) {
+      const platform = this._growingPlatforms[i];
+      
+      if (!platform._growing) {
+        this._growingPlatforms.splice(i, 1);
+        continue;
+      }
+
+      // Grow animation progress
+      platform._growProgress = Math.min(platform._growProgress + deltaTime * 1.5, 1);
+
+      // Update platform size based on grow direction
+      if (platform._growDirection === 'up') {
+        const currentHeight = platform._finalHeight * platform._growProgress;
+        platform._body.height = currentHeight;
+        platform._body.y = platform._finalY;
+        platform._body._updateBoundingBox();
+      }
+
+      // Complete growth
+      if (platform._growProgress >= 1) {
+        platform._growing = false;
+        this._growingPlatforms.splice(i, 1);
+      }
     }
   }
 
@@ -475,6 +695,22 @@ export class GameScene {
   _startTransition(exit) {
     const transitionType = exit.transition || TRANSITION_TYPE.NONE;
     this._pendingExit = exit;
+
+    // Check if BGM will change
+    const nextMapData = getMap(exit.targetStage);
+    const nextBgmId = nextMapData?.bgm || null;
+    const currentBgmId = this._bgmManager.currentBgmId;
+    const bgmWillChange = nextBgmId !== currentBgmId;
+
+    // Store pending BGM for transition complete
+    this._pendingBgmId = nextBgmId;
+    this._bgmFadingForTransition = bgmWillChange;
+
+    // Start BGM fade out if BGM will change
+    if (bgmWillChange && currentBgmId) {
+      const fadeDuration = transitionType === TRANSITION_TYPE.WARP ? 100 : 300;
+      this._bgmManager.fadeOut(fadeDuration);
+    }
 
     switch (transitionType) {
       case TRANSITION_TYPE.FADE:
@@ -523,8 +759,13 @@ export class GameScene {
 
       case TRANSITION_TYPE.NONE:
       default:
-        // Instant transition
+        // Instant transition - handle BGM change directly
+        if (bgmWillChange) {
+          this._bgmManager.changeTo(nextBgmId, { fadeDuration: 300 });
+        }
         this._loadStageWithSpawn(exit.targetStage, exit.targetSpawn);
+        this._pendingBgmId = null;
+        this._bgmFadingForTransition = false;
         break;
     }
   }
@@ -563,6 +804,13 @@ export class GameScene {
     this._nextMapData = null;
     this._nextPlatforms = [];
 
+    // Fade in BGM if it changed during transition
+    if (this._bgmFadingForTransition && this._pendingBgmId) {
+      this._bgmManager.play(this._pendingBgmId, { fadeIn: true, fadeDuration: 300 });
+    }
+    this._pendingBgmId = null;
+    this._bgmFadingForTransition = false;
+
     // Ensure camera is properly positioned after transition
     this._camera.snapToTarget();
   }
@@ -580,6 +828,13 @@ export class GameScene {
     this._transitionPlayerPos = null;
     this._nextMapData = null;
     this._nextPlatforms = [];
+
+    // Fade in BGM if it changed during transition
+    if (this._bgmFadingForTransition && this._pendingBgmId) {
+      this._bgmManager.play(this._pendingBgmId, { fadeIn: true, fadeDuration: 300 });
+    }
+    this._pendingBgmId = null;
+    this._bgmFadingForTransition = false;
 
     // Camera snaps to new player position (targetSpawn)
     this._camera.snapToTarget();
@@ -609,6 +864,10 @@ export class GameScene {
 
     // Create items from map data
     this._items = this._createItemsFromMapData(mapData);
+
+    // Create trigger zones from map data
+    this._triggerZones = this._createTriggerZonesFromMapData(mapData);
+    this._growingPlatforms = [];
 
     // Check seamless settings
     const seamlessX = this._mapBounds.LEFT === BOUNDARY_TYPE.SEAMLESS || 
@@ -847,6 +1106,11 @@ export class GameScene {
 
         // Render items
         this._items.forEach((item) => item.render(context, status));
+
+        // Render trigger zones (only in main area)
+        if (offsetX === 0 && offsetY === 0) {
+          this._triggerZones.forEach((trigger) => trigger.render(context, status));
+        }
 
         context.restore();
       }
@@ -1123,6 +1387,32 @@ export class GameScene {
 
     // Item count display (top right) - with icons
     this._renderItemUI(context, boundary);
+
+    // Render trigger hint if player is in active zone
+    this._renderTriggerHint(context, status);
+  }
+
+  /**
+   * Render trigger zone hint UI
+   * @param {CanvasRenderingContext2D} context
+   * @param {Object} status
+   */
+  _renderTriggerHint(context, status) {
+    if (!this._activeTrigger) {
+      return;
+    }
+
+    // Calculate screen position (above player)
+    const interpolation = status.interpolation ?? 1;
+    const { x: playerX, y: playerY } = this._player.getInterpolatedPosition(interpolation);
+    const { x: camX, y: camY } = this._camera.getInterpolatedPosition(interpolation);
+    
+    const screenPos = {
+      x: playerX + this._player.width / 2 - camX,
+      y: playerY - this._player.height - camY,
+    };
+
+    this._activeTrigger.renderHint(context, this._inventory, screenPos);
   }
 
   /**
@@ -1142,8 +1432,8 @@ export class GameScene {
 
     // Items to display in inventory
     const items = [
-      { type: 'cell', count: this._cellCount, color: '#3C8CDC' },
-      { type: 'seed', count: this._seedCount, color: '#8B6914' },
+      { type: 'cell', count: this._inventory.cell, color: '#3C8CDC' },
+      { type: 'seed', count: this._inventory.seed, color: '#8B6914' },
     ];
 
     // Calculate total width

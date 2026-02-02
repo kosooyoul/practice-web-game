@@ -65,6 +65,8 @@ export const KEY_CODES = {
   RIGHT: 39,
   DOWN: 40,
   SPACE: 32,
+  E: 69,      // Interact key
+  X: 88,      // Alternative interact key
 };
 
 // Key names mapping
@@ -74,4 +76,6 @@ export const KEY_NAMES = {
   [KEY_CODES.RIGHT]: 'right',
   [KEY_CODES.DOWN]: 'down',
   [KEY_CODES.SPACE]: 'action',
+  [KEY_CODES.E]: 'interact',
+  [KEY_CODES.X]: 'interact',
 };
