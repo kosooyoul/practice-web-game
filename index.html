@@ -4,11 +4,11 @@
 <head>
   <meta charset="utf-8">
   <title>Web Game Practice</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="Web Game Practice">
   <meta name="theme-color" content="#222">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="WebGame">
   <link rel="shortcut icon" type="image/x-icon" href="https://www.auoi.net/icons/ahyane-20y-m.png">
   <link rel="apple-touch-icon" href="https://www.auoi.net/icons/ahyane-20y-m.png">
@@ -17,11 +17,17 @@
     body {
       font-family: 'SF Mono', 'Consolas', monospace;
       max-width: 400px;
-      margin: 60px auto;
-      padding: 0 20px;
+      margin: 0 auto;
+      padding: 60px 20px;
+      padding-top: calc(60px + env(safe-area-inset-top));
+      padding-bottom: calc(60px + env(safe-area-inset-bottom));
+      padding-left: calc(20px + env(safe-area-inset-left));
+      padding-right: calc(20px + env(safe-area-inset-right));
       line-height: 1.6;
       background: #fafafa;
       color: #222;
+      min-height: 100vh;
+      box-sizing: border-box;
     }
 
     h1 {
