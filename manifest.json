@@ -1,12 +1,13 @@
 {
-  "name": "Andante - Web Platform Game",
-  "short_name": "Andante",
-  "description": "Andante - A simple web platform game",
-  "start_url": "/andante",
+  "name": "Web Game Practice",
+  "short_name": "WebGame",
+  "description": "Web Game Practice - Collection of web games",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "orientation": "landscape",
-  "background_color": "#ffffff",
-  "theme_color": "#4a90d9",
+  "orientation": "any",
+  "background_color": "#fafafa",
+  "theme_color": "#222222",
   "icons": [
     {
       "src": "https://www.auoi.net/icons/ahyane-20y-m.png",

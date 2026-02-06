@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8">
+  <title>Web Game Practice</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Web Game Practice">
+  <meta name="theme-color" content="#222">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="WebGame">
+  <link rel="shortcut icon" type="image/x-icon" href="https://www.auoi.net/icons/ahyane-20y-m.png">
+  <link rel="apple-touch-icon" href="https://www.auoi.net/icons/ahyane-20y-m.png">
+  <link rel="manifest" href="./manifest.json">
+  <style>
+    body {
+      font-family: 'SF Mono', 'Consolas', monospace;
+      max-width: 400px;
+      margin: 60px auto;
+      padding: 0 20px;
+      line-height: 1.6;
+      background: #fafafa;
+      color: #222;
+    }
+
+    h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 28px;
+    }
+
+    h1::after {
+      content: '_';
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    a {
+      display: block;
+      padding: 12px;
+      color: #222;
+      text-decoration: none;
+      border: 1px solid #ddd;
+    }
+
+    a:hover {
+      border-color: #2a6;
+    }
+
+    a:hover .title::before {
+      content: '> ';
+    }
+
+    .title {
+      display: block;
+    }
+
+    .title::before {
+      content: '  ';
+      white-space: pre;
+    }
+
+    .desc {
+      display: block;
+      margin-top: 2px;
+      padding-left: 1.2em;
+      font-size: 0.85rem;
+      color: #666;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Web Game Practice</h1>
+  <ul>
+    <li>
+      <a href="./andante/">
+        <span class="title">Andante</span>
+        <span class="desc">2D 플랫폼 게임</span>
+      </a>
+    </li>
+    <li>
+      <a href="./move-and-jump/">
+        <span class="title">Move & Jump</span>
+        <span class="desc">이동 및 점프 연습</span>
+      </a>
+    </li>
+    <li>
+      <a href="./avatar/">
+        <span class="title">Avatar</span>
+        <span class="desc">캐릭터 렌더링</span>
+      </a>
+    </li>
+    <li>
+      <a href="./fall-3d/">
+        <span class="title">Fall 3D</span>
+        <span class="desc">3D 낙하 (THREE.js)</span>
+      </a>
+    </li>
+    <li>
+      <a href="./move-3d/">
+        <span class="title">Move 3D</span>
+        <span class="desc">3D 이동</span>
+      </a>
+    </li>
+  </ul>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((registration) => {
+            console.log('[PWA] Service Worker 등록 성공:', registration.scope);
+          })
+          .catch((error) => {
+            console.error('[PWA] Service Worker 등록 실패:', error);
+          });
+      });
+    }
+  </script>
+</body>
+
+</html>

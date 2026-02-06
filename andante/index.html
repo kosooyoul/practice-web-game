@@ -10,18 +10,7 @@
   <meta name="description" content="Andante - A simple web platform game">
   <meta name="format-detection" content="telephone=no">
 
-  <!-- PWA 메타 태그 -->
-  <meta name="theme-color" content="#4a90d9">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Andante">
-
-  <!-- 파비콘 및 앱 아이콘 -->
   <link rel="shortcut icon" type="image/x-icon" href="https://www.auoi.net/icons/ahyane-20y-m.png">
-  <link rel="apple-touch-icon" href="https://www.auoi.net/icons/ahyane-20y-m.png">
-
-  <!-- PWA 매니페스트 -->
-  <link rel="manifest" href="./manifest.json">
   <style>
     * {
       box-sizing: border-box;
@@ -50,21 +39,6 @@
   <canvas id="game-canvas" width="0" height="0"></canvas>
 
   <script type="module" src="./src/main.js"></script>
-
-  <!-- Service Worker 등록 -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then((registration) => {
-            console.log('[PWA] Service Worker 등록 성공:', registration.scope);
-          })
-          .catch((error) => {
-            console.error('[PWA] Service Worker 등록 실패:', error);
-          });
-      });
-    }
-  </script>
 </body>
 
 </html>
