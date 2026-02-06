@@ -54,7 +54,11 @@ export class GameScene {
   _pendingBgmId = null;         // BGM to play after transition
   _bgmFadingForTransition = false;
 
-  constructor() {
+  /**
+   * @param {string} [initialStageId='stage1'] - 월드맵에서 진입 시 전달
+   */
+  constructor(initialStageId = 'stage1') {
+    this._initialStageId = initialStageId;
     this._camera = new Camera();
     this._mapLoader = new MapLoader();
     this._transitionManager = new TransitionManager();
@@ -87,8 +91,8 @@ export class GameScene {
   setGame(game) {
     this._game = game;
 
-    // Load first stage (BGM will be queued but not play until interaction)
-    this.loadStage('stage1');
+    // Load stage (월드맵에서 진입 시 initialStageId, 아니면 stage1)
+    this.loadStage(this._initialStageId);
 
     // Set camera to follow player
     this._camera.setTarget(this._player);
@@ -451,8 +455,9 @@ export class GameScene {
       this._spawnPlayer();
     }
 
-    // Check if player entered exit zone (only if no transition active)
+    // 스테이지 종료 트리거 / 맵 이동 (전환 중이 아닐 때만)
     if (!this._transitionManager.isActive) {
+      if (this._checkStageEndZone()) return;
       this._checkExitZone();
     }
 
@@ -533,11 +538,6 @@ export class GameScene {
           this._activeTrigger = trigger;
         }
       }
-
-      // Handle activation completion
-      if (trigger.state === TRIGGER_STATE.COMPLETED && trigger.resultData) {
-        this._executeTriggerResult(trigger);
-      }
     }
 
     // Handle interact key for trigger activation (B button / E key)
@@ -558,79 +558,6 @@ export class GameScene {
     if (this._game && this._game.input) {
       this._game.input.setShowInteractButton(this._activeTrigger !== null);
     }
-  }
-
-  /**
-   * Execute trigger result (spawn platforms, background elements, etc.)
-   * @param {TriggerZone} trigger
-   */
-  _executeTriggerResult(trigger) {
-    const result = trigger.recipe?.result;
-    const data = trigger.resultData;
-
-    if (!result) {
-      return;
-    }
-
-    switch (result.type) {
-      case 'spawnBackground':
-        // Spawn background element (like potato vine)
-        const elementType = result.elementType || 'potatoVine';
-        const growDuration = result.growDuration || 2;
-        
-        // Spawn at trigger zone position
-        this._backgroundLayer.addGrowingElement(
-          elementType,
-          trigger.x + trigger.width / 2,  // Center of trigger zone
-          trigger.y,                       // Ground level
-          {
-            scale: data?.scale || 1.5,
-            growDuration: growDuration,
-            height: data?.height || 200,
-          }
-        );
-        console.log(`[GameScene] Growing ${elementType} from trigger`);
-        break;
-
-      case 'spawnPlatforms':
-        // Add platforms with grow animation
-        if (data?.platforms) {
-          for (const platData of data.platforms) {
-            const platform = new Platform(
-              platData.x,
-              platData.y,
-              platData.width,
-              platData.height
-            );
-            // Mark as growing (for animation)
-            platform._growing = true;
-            platform._growProgress = 0;
-            platform._growDirection = platData.growDirection || 'up';
-            platform._finalHeight = platData.height;
-            platform._finalY = platData.y;
-            
-            this._platforms.push(platform);
-            this._growingPlatforms.push(platform);
-          }
-          console.log(`[GameScene] Spawned ${data.platforms.length} platforms from trigger`);
-        }
-        break;
-
-      case 'removePlatforms':
-        // Remove platforms by ID
-        if (data?.platformIds) {
-          this._platforms = this._platforms.filter(
-            (p) => !data.platformIds.includes(p.id)
-          );
-        }
-        break;
-
-      default:
-        console.warn(`[GameScene] Unknown trigger result type: ${result.type}`);
-    }
-
-    // Clear result data to prevent re-execution
-    trigger._resultData = null;
   }
 
   /**
@@ -668,14 +595,35 @@ export class GameScene {
   }
 
   /**
-   * Check if player is in an exit zone
+   * 스테이지 종료 존: 진입 시 월드맵 복귀 (맵 이동과 분리)
+   * @returns {boolean} 트리거 발생 시 true
+   */
+  _checkStageEndZone() {
+    const zones = this._mapLoader.getStageEndZones();
+    if (zones.length === 0) return false;
+    const playerBody = this._player.body;
+    for (const zone of zones) {
+      if (
+        playerBody.x < zone.x + zone.width &&
+        playerBody.x + playerBody.width > zone.x &&
+        playerBody.y - playerBody.height < zone.y + zone.height &&
+        playerBody.y > zone.y
+      ) {
+        if (this._game) this._game.notifyStageEnd(this.currentMapId);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check if player is in an exit zone (맵 이동 워프만, 스테이지 종료 아님)
    */
   _checkExitZone() {
     const playerBody = this._player.body;
     const exits = this._mapLoader.getExits();
 
     for (const exit of exits) {
-      // Check AABB collision
       if (
         playerBody.x < exit.x + exit.width &&
         playerBody.x + playerBody.width > exit.x &&
@@ -1096,9 +1044,10 @@ export class GameScene {
         // Render ground
         this._renderGround(context, status, !seamlessX);
         
-        // Render exit zones (only in main area)
+        // Render exit zones & stage end zones (only in main area)
         if (offsetX === 0 && offsetY === 0) {
           this._renderExitZones(context);
+          this._renderStageEndZones(context);
         }
 
         // Render platforms
@@ -1334,6 +1283,22 @@ export class GameScene {
   }
 
   /**
+   * 스테이지 종료 존 표시 (진입 시 월드맵 복귀) - 골드로 구분
+   */
+  _renderStageEndZones(context) {
+    const zones = this._mapLoader.getStageEndZones();
+    if (zones.length === 0) return;
+
+    zones.forEach((zone) => {
+      context.fillStyle = 'rgba(255, 200, 50, 0.35)';
+      context.strokeStyle = 'rgba(220, 160, 0, 0.9)';
+      context.lineWidth = 2;
+      context.fillRect(zone.x, zone.y, zone.width, zone.height);
+      context.strokeRect(zone.x, zone.y, zone.width, zone.height);
+    });
+  }
+
+  /**
    * Render UI elements (screen space, not affected by camera)
    * @param {CanvasRenderingContext2D} context
    * @param {Object} status
@@ -1357,9 +1322,9 @@ export class GameScene {
     }
 
     // Controls hint (bottom center)
-    context.font = '14px sans-serif';
-    context.fillStyle = '#666666';
-    context.fillText('Arrow Keys / Touch to Move | Space / Touch Right to Jump', 0, boundary.bottom - 30);
+    // context.font = '14px sans-serif';
+    // context.fillStyle = '#666666';
+    // context.fillText('Arrow Keys / Touch to Move | Space / Touch Right to Jump', 0, boundary.bottom - 30);
 
     // Debug info (top left)
     context.font = '12px monospace';

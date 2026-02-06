@@ -2,7 +2,7 @@
  * Andante - Main Entry Point
  */
 import { Game } from './core/Game.js';
-import { GameScene } from './scenes/GameScene.js';
+import { StageSelectScene } from './scenes/StageSelectScene.js';
 
 /**
  * Initialize and start the game
@@ -15,17 +15,13 @@ const initGame = () => {
     return;
   }
 
-  // Create game instance
   const game = new Game(canvas);
+  const stageSelectScene = new StageSelectScene();
+  game.setScene(stageSelectScene);
 
-  // Create and set game scene
-  const gameScene = new GameScene();
-  game.setScene(gameScene);
-
-  // Start the game
   game.start();
 
-  console.log('[Andante] Game initialized');
+  console.log('[Andante] Game initialized (Stage Select)');
 };
 
 // Start game when DOM is ready

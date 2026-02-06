@@ -10,6 +10,7 @@ export class Game {
   _gameLoop = null;
   _inputManager = null;
   _currentScene = null;
+  _onStageEnd = null;
 
   constructor(canvasElement) {
     this._canvas = new Canvas(canvasElement);
@@ -35,6 +36,24 @@ export class Game {
     this._currentScene = scene;
     if (scene.setGame) {
       scene.setGame(this);
+    }
+  }
+
+  /**
+   * 스테이지 종료 트리거 시 콜백 (월드맵 복귀용, StageSelect 진입 시 설정)
+   * @param {Function} callback - (currentMapId) => void
+   */
+  setOnStageEnd(callback) {
+    this._onStageEnd = callback;
+  }
+
+  /**
+   * GameScene에서 스테이지 종료 존 진입 시 호출 → 월드맵 복귀
+   * @param {string} currentMapId
+   */
+  notifyStageEnd(currentMapId) {
+    if (this._onStageEnd) {
+      this._onStageEnd(currentMapId);
     }
   }
 

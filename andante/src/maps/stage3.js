@@ -143,7 +143,7 @@ export const stage3 = {
     { type: 'seed', x: -350, y: -450 },  // Secret area left
   ],
 
-  // Exit to stageLoop via warp
+  // Exit to stageLoop via warp (맵 이동 워프)
   exits: [
     {
       x: 720,
@@ -155,5 +155,10 @@ export const stage3 = {
       direction: TRANSITION_DIRECTION.RIGHT,
       targetSpawn: { x: 0, y: 100 },
     },
+  ],
+
+  // 스테이지 종료 트리거 (진입 시 클리어 후 월드맵 복귀) - 발판 위 공중에만
+  stageEndZones: [
+    { x: -90, y: -300, width: 140, height: 50 },  // 중앙 상단 플랫폼( top -320 ) 위 공중
   ],
 };

@@ -142,7 +142,7 @@ export const stage2 = {
     },
   ],
 
-  // Stage exit zones
+  // Stage exit zones (맵 이동 워프)
   exits: [
     {
       x: -100,
@@ -154,5 +154,10 @@ export const stage2 = {
       direction: TRANSITION_DIRECTION.UP,
       targetSpawn: { x: -700, y: 100 },
     },
+  ],
+
+  // 스테이지 종료 트리거 (진입 시 클리어 후 월드맵 복귀) - 발판 위 공중에만
+  stageEndZones: [
+    { x: -80, y: -750, width: 160, height: 50 },  // 최상단 골 플랫폼( top -780 ) 위 공중
   ],
 };

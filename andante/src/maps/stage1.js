@@ -54,12 +54,12 @@ export const stage1 = {
     sky: 'day',
     autoGenerate: {
       mountains: 3,
-      trees: 10,
-      bushes: 8,
-      grass: 25,
-      flowers: 15,
-      butterflies: 5,
-      particles: 10,
+      trees: 3,
+      bushes: 3,
+      grass: 16,
+      flowers: 18,
+      butterflies: 2,
+      particles: 4,
     },
   },
 
@@ -116,7 +116,7 @@ export const stage1 = {
   triggers: [
     {
       // Potato vine growth trigger - beautiful growing vine background
-      x: 50,           // Near stepping stones
+      x: 250,           // Near stepping stones
       y: 100,
       width: 60,
       height: 80,
@@ -128,7 +128,7 @@ export const stage1 = {
     },
   ],
 
-  // Stage exit zones
+  // Stage exit zones (맵 이동 워프)
   exits: [
     {
       x: 580,
@@ -141,5 +141,10 @@ export const stage1 = {
       // Player spawn in target stage (within stage2 bounds: -300 ~ 300)
       targetSpawn: { x: -290, y: 100 },
     },
+  ],
+
+  // 스테이지 종료 트리거 (진입 시 클리어 후 월드맵 복귀) - 발판 위 공중에만
+  stageEndZones: [
+    { x: 490, y: -100, width: 80, height: 60 },  // 골 플랫폼( top -120 ) 위 공중
   ],
 };

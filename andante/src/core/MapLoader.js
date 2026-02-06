@@ -57,6 +57,7 @@ export class MapLoader {
       boundary: { ...DEFAULT_BOUNDARY, ...mapData.boundary },
       platforms: mapData.platforms || [],
       exits: mapData.exits || [],
+      stageEndZones: mapData.stageEndZones || [],
     };
 
     this._currentMapId = mapId;
@@ -140,11 +141,19 @@ export class MapLoader {
   }
 
   /**
-   * Get exit zones
+   * Get exit zones (맵 이동 워프)
    * @returns {Array}
    */
   getExits() {
     return this._currentMap?.exits ?? [];
+  }
+
+  /**
+   * Get stage end zones (스테이지 종료 → 월드맵 복귀 트리거)
+   * @returns {Array} [{ x, y, width, height }, ...]
+   */
+  getStageEndZones() {
+    return this._currentMap?.stageEndZones ?? [];
   }
 
   /**
